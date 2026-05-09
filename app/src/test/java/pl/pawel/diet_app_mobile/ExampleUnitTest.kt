@@ -1,4 +1,4 @@
-package com.example.diet_app_mobile
+package pl.pawel.diet_app_mobile
 
 import org.junit.Test
 

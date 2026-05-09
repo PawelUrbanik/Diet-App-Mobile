@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.diet_app_mobile"
+    namespace = "pl.pawel.diet_app_mobile"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.diet_app_mobile"
+        applicationId = "pl.pawel.diet_app_mobile"
         minSdk = 33
         targetSdk = 36
         versionCode = 1

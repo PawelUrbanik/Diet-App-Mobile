@@ -1,4 +1,4 @@
-package com.example.diet_app_mobile
+package pl.pawel.diet_app_mobile
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.diet_app_mobile.ui.theme.DietAppMobileTheme
+import pl.pawel.diet_app_mobile.ui.theme.DietAppMobileTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

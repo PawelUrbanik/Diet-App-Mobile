@@ -1,4 +1,4 @@
-package com.example.diet_app_mobile.ui.theme
+package pl.pawel.diet_app_mobile.ui.theme
 
 import android.app.Activity
 import android.os.Build
