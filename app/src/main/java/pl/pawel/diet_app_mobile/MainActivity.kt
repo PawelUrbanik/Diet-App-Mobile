@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import dagger.hilt.android.AndroidEntryPoint
-import pl.pawel.diet_app_mobile.ui.products.ProductsRoute
+import pl.pawel.diet_app_mobile.ui.AppRoot
 import pl.pawel.diet_app_mobile.ui.theme.DietAppMobileTheme
 
 @AndroidEntryPoint
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DietAppMobileTheme {
-                ProductsRoute()
+                AppRoot()
             }
         }
     }
