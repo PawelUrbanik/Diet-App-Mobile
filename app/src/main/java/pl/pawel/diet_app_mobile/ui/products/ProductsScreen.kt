@@ -1,5 +1,6 @@
 package pl.pawel.diet_app_mobile.ui.products
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +19,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -46,7 +48,9 @@ fun ProductsRoute(
         onProteinChange = viewModel::onProteinChange,
         onFatChange = viewModel::onFatChange,
         onCarbsChange = viewModel::onCarbsChange,
-        onAddProduct = viewModel::addProduct,
+        onSaveProduct = viewModel::saveProduct,
+        onCancelEditing = viewModel::cancelEditing,
+        onProductClick = viewModel::selectProductForEditing,
     )
 }
 
@@ -60,7 +64,9 @@ private fun ProductsScreen(
     onProteinChange: (String) -> Unit,
     onFatChange: (String) -> Unit,
     onCarbsChange: (String) -> Unit,
-    onAddProduct: () -> Unit,
+    onSaveProduct: () -> Unit,
+    onCancelEditing: () -> Unit,
+    onProductClick: (Product) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -84,7 +90,8 @@ private fun ProductsScreen(
                     onProteinChange = onProteinChange,
                     onFatChange = onFatChange,
                     onCarbsChange = onCarbsChange,
-                    onAddProduct = onAddProduct,
+                    onSaveProduct = onSaveProduct,
+                    onCancelEditing = onCancelEditing,
                 )
             }
 
@@ -104,7 +111,11 @@ private fun ProductsScreen(
                     items = products,
                     key = { product -> product.id },
                 ) { product ->
-                    ProductCard(product = product)
+                    ProductCard(
+                        product = product,
+                        isSelected = formState.editingProductId == product.id,
+                        onClick = { onProductClick(product) },
+                    )
                 }
             }
         }
@@ -119,7 +130,8 @@ private fun ProductFormCard(
     onProteinChange: (String) -> Unit,
     onFatChange: (String) -> Unit,
     onCarbsChange: (String) -> Unit,
-    onAddProduct: () -> Unit,
+    onSaveProduct: () -> Unit,
+    onCancelEditing: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -131,7 +143,7 @@ private fun ProductFormCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Dodaj produkt",
+                text = if (formState.isEditing) "Edytuj produkt" else "Dodaj produkt",
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
@@ -161,11 +173,26 @@ private fun ProductFormCard(
                 )
             }
             Button(
-                onClick = onAddProduct,
+                onClick = onSaveProduct,
                 enabled = !formState.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (formState.isSaving) "Zapisywanie..." else "Dodaj produkt")
+                Text(
+                    when {
+                        formState.isSaving -> "Zapisywanie..."
+                        formState.isEditing -> "Zapisz zmiany"
+                        else -> "Dodaj produkt"
+                    },
+                )
+            }
+            if (formState.isEditing) {
+                OutlinedButton(
+                    onClick = onCancelEditing,
+                    enabled = !formState.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Anuluj edycję")
+                }
             }
         }
     }
@@ -241,8 +268,21 @@ private fun EmptyProductsCard() {
 }
 
 @Composable
-private fun ProductCard(product: Product) {
-    Card {
+private fun ProductCard(
+    product: Product,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -260,6 +300,12 @@ private fun ProductCard(product: Product) {
             Text(
                 text = "B: ${product.proteinPer100g.format()} g | T: ${product.fatPer100g.format()} g | W: ${product.carbsPer100g.format()} g",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = if (isSelected) "Edytujesz ten produkt" else "Kliknij, aby edytować",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

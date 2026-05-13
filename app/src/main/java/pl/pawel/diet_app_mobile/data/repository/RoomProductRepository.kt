@@ -18,6 +18,16 @@ class RoomProductRepository @Inject constructor(
         val now = System.currentTimeMillis()
         productDao.insert(product.toEntity(createdAt = now, updatedAt = now))
     }
+
+    override suspend fun updateProduct(product: Product) {
+        val existingProduct = productDao.getById(product.id) ?: return
+        productDao.update(
+            product.toEntity(
+                createdAt = existingProduct.createdAt,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
 }
 
 private fun ProductEntity.toDomain(): Product = Product(

@@ -38,7 +38,22 @@ class ProductsViewModel @Inject constructor(
 
     fun onCarbsChange(value: String) = updateForm { copy(carbs = value, errorMessage = null) }
 
-    fun addProduct() {
+    fun selectProductForEditing(product: Product) {
+        _formState.value = ProductFormState(
+            editingProductId = product.id,
+            name = product.name,
+            calories = product.caloriesPer100g.formatInput(),
+            protein = product.proteinPer100g.formatInput(),
+            fat = product.fatPer100g.formatInput(),
+            carbs = product.carbsPer100g.formatInput(),
+        )
+    }
+
+    fun cancelEditing() {
+        _formState.value = ProductFormState()
+    }
+
+    fun saveProduct() {
         val state = formState.value
         val product = state.toProductOrNull()
 
@@ -49,13 +64,19 @@ class ProductsViewModel @Inject constructor(
 
         viewModelScope.launch {
             updateForm { copy(isSaving = true, errorMessage = null) }
-            runCatching { productRepository.addProduct(product) }
+            runCatching {
+                if (state.editingProductId == null) {
+                    productRepository.addProduct(product)
+                } else {
+                    productRepository.updateProduct(product)
+                }
+            }
                 .onSuccess { _formState.value = ProductFormState() }
                 .onFailure {
                     updateForm {
                         copy(
                             isSaving = false,
-                            errorMessage = "Nie udało się dodać produktu. Sprawdź, czy nazwa nie jest już użyta.",
+                            errorMessage = "Nie udało się zapisać produktu. Sprawdź, czy nazwa nie jest już użyta.",
                         )
                     }
                 }
@@ -68,6 +89,7 @@ class ProductsViewModel @Inject constructor(
 }
 
 data class ProductFormState(
+    val editingProductId: Long? = null,
     val name: String = "",
     val calories: String = "",
     val protein: String = "",
@@ -75,7 +97,10 @@ data class ProductFormState(
     val carbs: String = "",
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
-)
+) {
+    val isEditing: Boolean
+        get() = editingProductId != null
+}
 
 private fun ProductFormState.toProductOrNull(): Product? {
     val parsedCalories = calories.toDoubleOrNull()
@@ -98,6 +123,7 @@ private fun ProductFormState.toProductOrNull(): Product? {
     }
 
     return Product(
+        id = editingProductId ?: 0,
         name = name.trim(),
         caloriesPer100g = parsedCalories,
         proteinPer100g = parsedProtein,
@@ -105,3 +131,10 @@ private fun ProductFormState.toProductOrNull(): Product? {
         carbsPer100g = parsedCarbs,
     )
 }
+
+private fun Double.formatInput(): String =
+    if (this % 1.0 == 0.0) {
+        toInt().toString()
+    } else {
+        toString()
+    }

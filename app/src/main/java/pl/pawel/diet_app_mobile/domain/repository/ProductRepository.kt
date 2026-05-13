@@ -7,4 +7,6 @@ interface ProductRepository {
     fun observeProducts(): Flow<List<Product>>
 
     suspend fun addProduct(product: Product)
+
+    suspend fun updateProduct(product: Product)
 }
