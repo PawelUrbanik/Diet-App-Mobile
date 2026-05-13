@@ -37,6 +37,7 @@ class RoomProductRepository @Inject constructor(
 private fun ProductEntity.toDomain(): Product = Product(
     id = id,
     name = name,
+    category = category,
     caloriesPer100g = caloriesPer100g,
     proteinPer100g = proteinPer100g,
     fatPer100g = fatPer100g,
@@ -49,6 +50,7 @@ private fun Product.toEntity(
 ): ProductEntity = ProductEntity(
     id = id,
     name = name.trim(),
+    category = productCategoryOrDefault(category),
     caloriesPer100g = caloriesPer100g,
     proteinPer100g = proteinPer100g,
     fatPer100g = fatPer100g,
@@ -56,3 +58,6 @@ private fun Product.toEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
+
+private fun productCategoryOrDefault(category: String): String =
+    category.trim().ifBlank { "Inne" }

@@ -335,6 +335,12 @@ private fun ProductCard(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
+                text = product.category,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
                 text = "${product.caloriesPer100g.format()} kcal / 100 g",
                 style = MaterialTheme.typography.bodyMedium,
             )

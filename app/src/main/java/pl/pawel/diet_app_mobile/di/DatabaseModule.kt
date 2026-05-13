@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import pl.pawel.diet_app_mobile.data.local.dao.ProductDao
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase
+import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_1_2
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -22,7 +23,8 @@ object DatabaseModule {
         context,
         DietAppDatabase::class.java,
         "diet_app.db",
-    ).build()
+    ).addMigrations(MIGRATION_1_2)
+        .build()
 
     @Provides
     fun provideProductDao(database: DietAppDatabase): ProductDao = database.productDao()
