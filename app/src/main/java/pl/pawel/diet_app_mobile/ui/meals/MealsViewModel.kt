@@ -27,12 +27,27 @@ class MealsViewModel @Inject constructor(
     productRepository: ProductRepository,
     private val mealSeeder: MealSeeder,
 ) : ViewModel() {
+    private val searchQuery = MutableStateFlow("")
+
     val meals: StateFlow<List<Meal>> = mealRepository.observeMeals()
+        .combine(searchQuery) { meals, query ->
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isBlank()) {
+                meals
+            } else {
+                meals.filter { meal ->
+                    meal.name.contains(normalizedQuery, ignoreCase = true) ||
+                        meal.category.contains(normalizedQuery, ignoreCase = true)
+                }
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    val query: StateFlow<String> = searchQuery.asStateFlow()
 
     private val products: StateFlow<List<Product>> = productRepository.observeProducts()
         .stateIn(
@@ -75,6 +90,10 @@ class MealsViewModel @Inject constructor(
     }
 
     fun onNameChange(value: String) = updateForm { copy(name = value, errorMessage = null) }
+
+    fun onSearchQueryChange(value: String) {
+        searchQuery.value = value
+    }
 
     fun onCategoryChange(value: String) = updateForm { copy(category = value, errorMessage = null) }
 

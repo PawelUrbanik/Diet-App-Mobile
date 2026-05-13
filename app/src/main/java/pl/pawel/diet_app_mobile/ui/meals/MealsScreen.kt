@@ -42,6 +42,7 @@ fun MealsRoute(
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
     val meals by viewModel.meals.collectAsState()
+    val query by viewModel.query.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
     val ingredientFormState by viewModel.ingredientFormState.collectAsState()
@@ -49,11 +50,13 @@ fun MealsRoute(
 
     MealsScreen(
         meals = meals,
+        query = query,
         formState = formState,
         editorState = editorState,
         ingredientFormState = ingredientFormState,
         ingredientProducts = ingredientProducts,
         onNameChange = viewModel::onNameChange,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
         onCategoryChange = viewModel::onCategoryChange,
         onDescriptionChange = viewModel::onDescriptionChange,
         onAddMeal = viewModel::addMeal,
@@ -75,11 +78,13 @@ fun MealsRoute(
 @Composable
 private fun MealsScreen(
     meals: List<Meal>,
+    query: String,
     formState: MealFormState,
     editorState: MealEditorState?,
     ingredientFormState: IngredientFormState,
     ingredientProducts: List<Product>,
     onNameChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
@@ -115,6 +120,8 @@ private fun MealsScreen(
                 formState = formState,
                 modifier = Modifier.padding(innerPadding),
                 onNameChange = onNameChange,
+                query = query,
+                onSearchQueryChange = onSearchQueryChange,
                 onCategoryChange = onCategoryChange,
                 onDescriptionChange = onDescriptionChange,
                 onAddMeal = onAddMeal,
@@ -145,8 +152,10 @@ private fun MealsScreen(
 private fun MealsListContent(
     meals: List<Meal>,
     formState: MealFormState,
+    query: String,
     modifier: Modifier = Modifier,
     onNameChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
@@ -174,8 +183,18 @@ private fun MealsListContent(
             )
         }
 
+        item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Szukaj posiłku") },
+                singleLine = true,
+            )
+        }
+
         if (meals.isEmpty()) {
-            item { EmptyMealsCard() }
+            item { EmptyMealsCard(hasActiveQuery = query.isNotBlank()) }
         } else {
             items(
                 items = meals,
@@ -364,10 +383,14 @@ private fun MealCategoryChips(
 }
 
 @Composable
-private fun EmptyMealsCard() {
+private fun EmptyMealsCard(hasActiveQuery: Boolean) {
     Card {
         Text(
-            text = "Brak posiłków. Dodaj pierwszy posiłek, a potem przejdź do edycji i przypisz składniki.",
+            text = if (hasActiveQuery) {
+                "Brak posiłków pasujących do wyszukiwania."
+            } else {
+                "Brak posiłków. Dodaj pierwszy posiłek, a potem przejdź do edycji i przypisz składniki."
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
