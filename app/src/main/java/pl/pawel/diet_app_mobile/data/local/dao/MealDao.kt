@@ -25,6 +25,9 @@ interface MealDao {
     @Query("SELECT * FROM meals WHERE id = :mealId")
     suspend fun getMealById(mealId: Long): MealEntity?
 
+    @Query("SELECT name FROM meals")
+    suspend fun getMealNames(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertMeal(meal: MealEntity): Long
 
