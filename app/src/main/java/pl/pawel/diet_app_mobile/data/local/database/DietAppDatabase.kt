@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import pl.pawel.diet_app_mobile.data.local.dao.MealDao
 import pl.pawel.diet_app_mobile.data.local.dao.ProductDao
 import pl.pawel.diet_app_mobile.data.local.entity.MealEntity
 import pl.pawel.diet_app_mobile.data.local.entity.MealIngredientEntity
@@ -26,6 +27,8 @@ import pl.pawel.diet_app_mobile.data.local.entity.ShoppingListItemEntity
 )
 abstract class DietAppDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
+
+    abstract fun mealDao(): MealDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
