@@ -28,6 +28,10 @@ class RoomProductRepository @Inject constructor(
             ),
         )
     }
+
+    override suspend fun deleteProduct(productId: Long) {
+        productDao.deleteById(productId)
+    }
 }
 
 private fun ProductEntity.toDomain(): Product = Product(

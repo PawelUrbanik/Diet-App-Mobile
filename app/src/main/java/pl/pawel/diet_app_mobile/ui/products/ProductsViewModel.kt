@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -18,15 +19,33 @@ import pl.pawel.diet_app_mobile.domain.repository.ProductRepository
 class ProductsViewModel @Inject constructor(
     private val productRepository: ProductRepository,
 ) : ViewModel() {
+    private val searchQuery = MutableStateFlow("")
+
     val products: StateFlow<List<Product>> = productRepository.observeProducts()
+        .combine(searchQuery) { products, query ->
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isBlank()) {
+                products
+            } else {
+                products.filter { product ->
+                    product.name.contains(normalizedQuery, ignoreCase = true)
+                }
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
 
+    val query: StateFlow<String> = searchQuery.asStateFlow()
+
     private val _formState = MutableStateFlow(ProductFormState())
     val formState: StateFlow<ProductFormState> = _formState.asStateFlow()
+
+    fun onSearchQueryChange(value: String) {
+        searchQuery.value = value
+    }
 
     fun onNameChange(value: String) = updateForm { copy(name = value, errorMessage = null) }
 
@@ -51,6 +70,22 @@ class ProductsViewModel @Inject constructor(
 
     fun cancelEditing() {
         _formState.value = ProductFormState()
+    }
+
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            runCatching { productRepository.deleteProduct(product.id) }
+                .onSuccess {
+                    if (formState.value.editingProductId == product.id) {
+                        _formState.value = ProductFormState()
+                    }
+                }
+                .onFailure {
+                    updateForm {
+                        copy(errorMessage = "Nie udało się usunąć produktu. Może być używany w posiłku.")
+                    }
+                }
+        }
     }
 
     fun saveProduct() {
