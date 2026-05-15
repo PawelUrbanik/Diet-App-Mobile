@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,7 +44,7 @@ fun MealsRoute(
 ) {
     val meals by viewModel.meals.collectAsState()
     val query by viewModel.query.collectAsState()
-    val formState by viewModel.formState.collectAsState()
+    val addMealState by viewModel.addMealState.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
     val ingredientEditorState by viewModel.ingredientEditorState.collectAsState()
     val ingredientProducts by viewModel.ingredientProducts.collectAsState()
@@ -49,12 +52,14 @@ fun MealsRoute(
     MealsScreen(
         meals = meals,
         query = query,
-        formState = formState,
+        addMealState = addMealState,
         editorState = editorState,
         ingredientEditorState = ingredientEditorState,
         ingredientProducts = ingredientProducts,
-        onNameChange = viewModel::onNameChange,
         onSearchQueryChange = viewModel::onSearchQueryChange,
+        onOpenAddMeal = viewModel::openAddMeal,
+        onCloseAddMeal = viewModel::closeAddMeal,
+        onNameChange = viewModel::onNameChange,
         onCategoryChange = viewModel::onCategoryChange,
         onDescriptionChange = viewModel::onDescriptionChange,
         onAddMeal = viewModel::addMeal,
@@ -80,12 +85,14 @@ fun MealsRoute(
 private fun MealsScreen(
     meals: List<Meal>,
     query: String,
-    formState: MealFormState,
+    addMealState: MealFormState?,
     editorState: MealEditorState?,
     ingredientEditorState: IngredientEditorState?,
     ingredientProducts: List<Product>,
-    onNameChange: (String) -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    onOpenAddMeal: () -> Unit,
+    onCloseAddMeal: () -> Unit,
+    onNameChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
@@ -108,13 +115,17 @@ private fun MealsScreen(
         ingredientEditorState != null && ingredientEditorState.isEditing -> "Edycja składnika"
         ingredientEditorState != null -> "Nowy składnik"
         editorState != null -> "Edycja posiłku"
+        addMealState != null -> "Nowy posiłek"
         else -> "Posiłki"
     }
     val onBack: (() -> Unit)? = when {
         ingredientEditorState != null -> onCloseIngredientEditor
         editorState != null -> onBackToList
+        addMealState != null -> onCloseAddMeal
         else -> null
     }
+
+    val isListView = addMealState == null && editorState == null && ingredientEditorState == null
 
     Scaffold(
         topBar = {
@@ -128,6 +139,13 @@ private fun MealsScreen(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            if (isListView) {
+                FloatingActionButton(onClick = onOpenAddMeal) {
+                    Icon(Icons.Default.Add, contentDescription = "Dodaj posiłek")
+                }
+            }
         },
     ) { innerPadding ->
         when {
@@ -153,16 +171,21 @@ private fun MealsScreen(
                 onSaveMeal = onSaveMeal,
                 onBackToList = onBackToList,
             )
-            else -> MealsListContent(
-                meals = meals,
-                formState = formState,
+            addMealState != null -> MealCreatorContent(
+                formState = addMealState,
                 modifier = Modifier.padding(innerPadding),
                 onNameChange = onNameChange,
-                query = query,
-                onSearchQueryChange = onSearchQueryChange,
                 onCategoryChange = onCategoryChange,
                 onDescriptionChange = onDescriptionChange,
                 onAddMeal = onAddMeal,
+                onCancel = onCloseAddMeal,
+            )
+            else -> MealsListContent(
+                meals = meals,
+                modifier = Modifier.padding(innerPadding),
+                query = query,
+                onSearchQueryChange = onSearchQueryChange,
+                onOpenAddMeal = onOpenAddMeal,
                 onMealClick = onMealClick,
             )
         }
@@ -172,31 +195,17 @@ private fun MealsScreen(
 @Composable
 private fun MealsListContent(
     meals: List<Meal>,
-    formState: MealFormState,
     query: String,
     modifier: Modifier = Modifier,
-    onNameChange: (String) -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onCategoryChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-    onAddMeal: () -> Unit,
+    onOpenAddMeal: () -> Unit,
     onMealClick: (Meal) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            MealFormCard(
-                formState = formState,
-                onNameChange = onNameChange,
-                onCategoryChange = onCategoryChange,
-                onDescriptionChange = onDescriptionChange,
-                onAddMeal = onAddMeal,
-            )
-        }
-
         item {
             Text(
                 text = "Baza posiłków",
@@ -225,6 +234,67 @@ private fun MealsListContent(
                     meal = meal,
                     onEditClick = { onMealClick(meal) },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MealCreatorContent(
+    formState: MealFormState,
+    modifier: Modifier = Modifier,
+    onNameChange: (String) -> Unit,
+    onCategoryChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onAddMeal: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            OutlinedTextField(
+                value = formState.name,
+                onValueChange = onNameChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Nazwa") },
+                singleLine = true,
+            )
+        }
+        item {
+            MealCategoryChips(
+                selectedCategory = formState.category,
+                onCategoryChange = onCategoryChange,
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = formState.description,
+                onValueChange = onDescriptionChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Opis opcjonalny") },
+                minLines = 2,
+            )
+        }
+        formState.errorMessage?.let { item { ErrorText(it) } }
+        item {
+            Button(
+                onClick = onAddMeal,
+                enabled = !formState.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (formState.isSaving) "Zapisywanie..." else "Dodaj posiłek")
+            }
+        }
+        item {
+            TextButton(
+                onClick = onCancel,
+                enabled = !formState.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Anuluj")
             }
         }
     }
@@ -348,54 +418,6 @@ private fun IngredientEditorContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Anuluj")
-            }
-        }
-    }
-}
-
-@Composable
-private fun MealFormCard(
-    formState: MealFormState,
-    onNameChange: (String) -> Unit,
-    onCategoryChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-    onAddMeal: () -> Unit,
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Dodaj posiłek", style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                value = formState.name,
-                onValueChange = onNameChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Nazwa") },
-                singleLine = true,
-            )
-            MealCategoryChips(
-                selectedCategory = formState.category,
-                onCategoryChange = onCategoryChange,
-            )
-            OutlinedTextField(
-                value = formState.description,
-                onValueChange = onDescriptionChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Opis opcjonalny") },
-                minLines = 2,
-            )
-            formState.errorMessage?.let { ErrorText(it) }
-            Button(
-                onClick = onAddMeal,
-                enabled = !formState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (formState.isSaving) "Zapisywanie..." else "Dodaj posiłek")
             }
         }
     }

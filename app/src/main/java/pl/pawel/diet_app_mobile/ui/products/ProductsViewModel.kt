@@ -42,8 +42,8 @@ class ProductsViewModel @Inject constructor(
 
     val query: StateFlow<String> = searchQuery.asStateFlow()
 
-    private val _formState = MutableStateFlow(ProductFormState())
-    val formState: StateFlow<ProductFormState> = _formState.asStateFlow()
+    private val _editorState = MutableStateFlow<ProductFormState?>(null)
+    val editorState: StateFlow<ProductFormState?> = _editorState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -65,8 +65,12 @@ class ProductsViewModel @Inject constructor(
 
     fun onCarbsChange(value: String) = updateForm { copy(carbs = value, errorMessage = null) }
 
-    fun selectProductForEditing(product: Product) {
-        _formState.value = ProductFormState(
+    fun openAddProduct() {
+        _editorState.value = ProductFormState()
+    }
+
+    fun openEditProduct(product: Product) {
+        _editorState.value = ProductFormState(
             editingProductId = product.id,
             name = product.name,
             calories = product.caloriesPer100g.formatInput(),
@@ -76,18 +80,33 @@ class ProductsViewModel @Inject constructor(
         )
     }
 
-    fun cancelEditing() {
-        _formState.value = ProductFormState()
+    fun closeEditor() {
+        _editorState.value = null
     }
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             runCatching { productRepository.deleteProduct(product.id) }
                 .onSuccess {
-                    if (formState.value.editingProductId == product.id) {
-                        _formState.value = ProductFormState()
+                    if (editorState.value?.editingProductId == product.id) {
+                        _editorState.value = null
                     }
                 }
+                .onFailure {
+                    // Brak otwartego edytora — błąd usuwania zgłosimy następnym razem.
+                    updateForm {
+                        copy(errorMessage = "Nie udało się usunąć produktu. Może być używany w posiłku.")
+                    }
+                }
+        }
+    }
+
+    fun deleteProductFromEditor() {
+        val state = editorState.value ?: return
+        val productId = state.editingProductId ?: return
+        viewModelScope.launch {
+            runCatching { productRepository.deleteProduct(productId) }
+                .onSuccess { _editorState.value = null }
                 .onFailure {
                     updateForm {
                         copy(errorMessage = "Nie udało się usunąć produktu. Może być używany w posiłku.")
@@ -97,7 +116,7 @@ class ProductsViewModel @Inject constructor(
     }
 
     fun saveProduct() {
-        val state = formState.value
+        val state = editorState.value ?: return
         val product = state.toProductOrNull()
 
         if (product == null) {
@@ -114,7 +133,7 @@ class ProductsViewModel @Inject constructor(
                     productRepository.updateProduct(product)
                 }
             }
-                .onSuccess { _formState.value = ProductFormState() }
+                .onSuccess { _editorState.value = null }
                 .onFailure {
                     updateForm {
                         copy(
@@ -127,7 +146,7 @@ class ProductsViewModel @Inject constructor(
     }
 
     private fun updateForm(update: ProductFormState.() -> ProductFormState) {
-        _formState.update(update)
+        _editorState.update { state -> state?.update() }
     }
 }
 

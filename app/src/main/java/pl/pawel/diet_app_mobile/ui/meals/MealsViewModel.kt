@@ -56,8 +56,8 @@ class MealsViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
-    private val _formState = MutableStateFlow(MealFormState())
-    val formState: StateFlow<MealFormState> = _formState.asStateFlow()
+    private val _addMealState = MutableStateFlow<MealFormState?>(null)
+    val addMealState: StateFlow<MealFormState?> = _addMealState.asStateFlow()
 
     private val _editorState = MutableStateFlow<MealEditorState?>(null)
     val editorState: StateFlow<MealEditorState?> = _editorState.asStateFlow()
@@ -90,6 +90,14 @@ class MealsViewModel @Inject constructor(
         }
     }
 
+    fun openAddMeal() {
+        _addMealState.value = MealFormState()
+    }
+
+    fun closeAddMeal() {
+        _addMealState.value = null
+    }
+
     fun onNameChange(value: String) = updateForm { copy(name = value, errorMessage = null) }
 
     fun onSearchQueryChange(value: String) {
@@ -101,7 +109,7 @@ class MealsViewModel @Inject constructor(
     fun onDescriptionChange(value: String) = updateForm { copy(description = value, errorMessage = null) }
 
     fun addMeal() {
-        val state = formState.value
+        val state = addMealState.value ?: return
         val meal = state.toMealOrNull()
 
         if (meal == null) {
@@ -112,7 +120,7 @@ class MealsViewModel @Inject constructor(
         viewModelScope.launch {
             updateForm { copy(isSaving = true, errorMessage = null) }
             runCatching { mealRepository.addMeal(meal) }
-                .onSuccess { _formState.value = MealFormState() }
+                .onSuccess { _addMealState.value = null }
                 .onFailure {
                     updateForm {
                         copy(
@@ -259,7 +267,7 @@ class MealsViewModel @Inject constructor(
     }
 
     private fun updateForm(update: MealFormState.() -> MealFormState) {
-        _formState.update(update)
+        _addMealState.update { state -> state?.update() }
     }
 
     private fun updateEditor(update: MealEditorState.() -> MealEditorState) {

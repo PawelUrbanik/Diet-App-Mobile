@@ -13,17 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,22 +46,24 @@ fun ProductsRoute(
     viewModel: ProductsViewModel = hiltViewModel(),
 ) {
     val products by viewModel.products.collectAsState()
-    val formState by viewModel.formState.collectAsState()
+    val editorState by viewModel.editorState.collectAsState()
     val query by viewModel.query.collectAsState()
 
     ProductsScreen(
         products = products,
         query = query,
-        formState = formState,
+        editorState = editorState,
         onSearchQueryChange = viewModel::onSearchQueryChange,
+        onOpenAddProduct = viewModel::openAddProduct,
+        onProductClick = viewModel::openEditProduct,
+        onCloseEditor = viewModel::closeEditor,
         onNameChange = viewModel::onNameChange,
         onCaloriesChange = viewModel::onCaloriesChange,
         onProteinChange = viewModel::onProteinChange,
         onFatChange = viewModel::onFatChange,
         onCarbsChange = viewModel::onCarbsChange,
         onSaveProduct = viewModel::saveProduct,
-        onCancelEditing = viewModel::cancelEditing,
-        onProductClick = viewModel::selectProductForEditing,
+        onDeleteProductFromEditor = viewModel::deleteProductFromEditor,
         onDeleteProduct = viewModel::deleteProduct,
     )
 }
@@ -68,16 +73,18 @@ fun ProductsRoute(
 private fun ProductsScreen(
     products: List<Product>,
     query: String,
-    formState: ProductFormState,
+    editorState: ProductFormState?,
     onSearchQueryChange: (String) -> Unit,
+    onOpenAddProduct: () -> Unit,
+    onProductClick: (Product) -> Unit,
+    onCloseEditor: () -> Unit,
     onNameChange: (String) -> Unit,
     onCaloriesChange: (String) -> Unit,
     onProteinChange: (String) -> Unit,
     onFatChange: (String) -> Unit,
     onCarbsChange: (String) -> Unit,
     onSaveProduct: () -> Unit,
-    onCancelEditing: () -> Unit,
-    onProductClick: (Product) -> Unit,
+    onDeleteProductFromEditor: () -> Unit,
     onDeleteProduct: (Product) -> Unit,
 ) {
     var productPendingDelete by remember { mutableStateOf<Product?>(null) }
@@ -93,100 +100,137 @@ private fun ProductsScreen(
         )
     }
 
+    val title = when {
+        editorState != null && editorState.isEditing -> "Edycja produktu"
+        editorState != null -> "Nowy produkt"
+        else -> "Produkty"
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Produkty") },
+                title = { Text(text = title) },
+                navigationIcon = {
+                    if (editorState != null) {
+                        TextButton(onClick = onCloseEditor) {
+                            Text("Wróć")
+                        }
+                    }
+                },
             )
         },
+        floatingActionButton = {
+            if (editorState == null) {
+                FloatingActionButton(onClick = onOpenAddProduct) {
+                    Icon(Icons.Default.Add, contentDescription = "Dodaj produkt")
+                }
+            }
+        },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                ProductFormCard(
-                    formState = formState,
-                    onNameChange = onNameChange,
-                    onCaloriesChange = onCaloriesChange,
-                    onProteinChange = onProteinChange,
-                    onFatChange = onFatChange,
-                    onCarbsChange = onCarbsChange,
-                    onSaveProduct = onSaveProduct,
-                    onCancelEditing = onCancelEditing,
-                )
-            }
+        if (editorState != null) {
+            ProductEditorContent(
+                formState = editorState,
+                modifier = Modifier.padding(innerPadding),
+                onNameChange = onNameChange,
+                onCaloriesChange = onCaloriesChange,
+                onProteinChange = onProteinChange,
+                onFatChange = onFatChange,
+                onCarbsChange = onCarbsChange,
+                onSaveProduct = onSaveProduct,
+                onDeleteProduct = onDeleteProductFromEditor,
+                onCancel = onCloseEditor,
+            )
+        } else {
+            ProductsListContent(
+                products = products,
+                query = query,
+                modifier = Modifier.padding(innerPadding),
+                onSearchQueryChange = onSearchQueryChange,
+                onOpenAddProduct = onOpenAddProduct,
+                onProductClick = onProductClick,
+                onProductDeleteClick = { productPendingDelete = it },
+            )
+        }
+    }
+}
 
-            item {
-                Text(
-                    text = "Baza produktów",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+@Composable
+private fun ProductsListContent(
+    products: List<Product>,
+    query: String,
+    modifier: Modifier = Modifier,
+    onSearchQueryChange: (String) -> Unit,
+    onOpenAddProduct: () -> Unit,
+    onProductClick: (Product) -> Unit,
+    onProductDeleteClick: (Product) -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                text = "Baza produktów",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
 
-            item {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Szukaj produktu") },
-                    singleLine = true,
-                )
-            }
+        item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Szukaj produktu") },
+                singleLine = true,
+            )
+        }
 
-            if (products.isEmpty()) {
-                item {
-                    EmptyProductsCard(hasActiveQuery = query.isNotBlank())
-                }
-            } else {
-                items(
-                    items = products,
-                    key = { product -> product.id },
-                ) { product ->
-                    ProductCard(
-                        product = product,
-                        isSelected = formState.editingProductId == product.id,
-                        onClick = { onProductClick(product) },
-                        onDeleteClick = { productPendingDelete = product },
-                    )
-                }
+        if (products.isEmpty()) {
+            item {
+                EmptyProductsCard(hasActiveQuery = query.isNotBlank())
+            }
+        } else {
+            items(
+                items = products,
+                key = { product -> product.id },
+            ) { product ->
+                ProductCard(
+                    product = product,
+                    onClick = { onProductClick(product) },
+                    onDeleteClick = { onProductDeleteClick(product) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProductFormCard(
+private fun ProductEditorContent(
     formState: ProductFormState,
+    modifier: Modifier = Modifier,
     onNameChange: (String) -> Unit,
     onCaloriesChange: (String) -> Unit,
     onProteinChange: (String) -> Unit,
     onFatChange: (String) -> Unit,
     onCarbsChange: (String) -> Unit,
     onSaveProduct: () -> Unit,
-    onCancelEditing: () -> Unit,
+    onDeleteProduct: () -> Unit,
+    onCancel: () -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = if (formState.isEditing) "Edytuj produkt" else "Dodaj produkt",
-                style = MaterialTheme.typography.titleMedium,
-            )
+        item {
             Text(
                 text = "Wartości podawaj w przeliczeniu na 100 g.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        item {
             OutlinedTextField(
                 value = formState.name,
                 onValueChange = onNameChange,
@@ -194,6 +238,8 @@ private fun ProductFormCard(
                 label = { Text("Nazwa") },
                 singleLine = true,
             )
+        }
+        item {
             NutritionFields(
                 formState = formState,
                 onCaloriesChange = onCaloriesChange,
@@ -201,13 +247,17 @@ private fun ProductFormCard(
                 onFatChange = onFatChange,
                 onCarbsChange = onCarbsChange,
             )
-            formState.errorMessage?.let { message ->
+        }
+        formState.errorMessage?.let { message ->
+            item {
                 Text(
                     text = message,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
+        item {
             Button(
                 onClick = onSaveProduct,
                 enabled = !formState.isSaving,
@@ -221,14 +271,25 @@ private fun ProductFormCard(
                     },
                 )
             }
-            if (formState.isEditing) {
+        }
+        if (formState.isEditing) {
+            item {
                 OutlinedButton(
-                    onClick = onCancelEditing,
+                    onClick = onDeleteProduct,
                     enabled = !formState.isSaving,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Anuluj edycję")
+                    Text("Usuń produkt")
                 }
+            }
+        }
+        item {
+            TextButton(
+                onClick = onCancel,
+                enabled = !formState.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Anuluj")
             }
         }
     }
@@ -242,33 +303,35 @@ private fun NutritionFields(
     onFatChange: (String) -> Unit,
     onCarbsChange: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DecimalTextField(
-            value = formState.calories,
-            onValueChange = onCaloriesChange,
-            label = "kcal",
-            modifier = Modifier.weight(1f),
-        )
-        DecimalTextField(
-            value = formState.protein,
-            onValueChange = onProteinChange,
-            label = "Białko",
-            modifier = Modifier.weight(1f),
-        )
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        DecimalTextField(
-            value = formState.fat,
-            onValueChange = onFatChange,
-            label = "Tłuszcz",
-            modifier = Modifier.weight(1f),
-        )
-        DecimalTextField(
-            value = formState.carbs,
-            onValueChange = onCarbsChange,
-            label = "Węgle",
-            modifier = Modifier.weight(1f),
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DecimalTextField(
+                value = formState.calories,
+                onValueChange = onCaloriesChange,
+                label = "kcal",
+                modifier = Modifier.weight(1f),
+            )
+            DecimalTextField(
+                value = formState.protein,
+                onValueChange = onProteinChange,
+                label = "Białko",
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DecimalTextField(
+                value = formState.fat,
+                onValueChange = onFatChange,
+                label = "Tłuszcz",
+                modifier = Modifier.weight(1f),
+            )
+            DecimalTextField(
+                value = formState.carbs,
+                onValueChange = onCarbsChange,
+                label = "Węgle",
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -310,19 +373,11 @@ private fun EmptyProductsCard(hasActiveQuery: Boolean) {
 @Composable
 private fun ProductCard(
     product: Product,
-    isSelected: Boolean,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            },
-        ),
     ) {
         Column(
             modifier = Modifier
@@ -349,18 +404,20 @@ private fun ProductCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = if (isSelected) "Edytujesz ten produkt" else "Kliknij, aby edytować",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onDeleteClick,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Usuń")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Edytuj")
+                }
+                OutlinedButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Usuń")
+                }
             }
         }
     }
