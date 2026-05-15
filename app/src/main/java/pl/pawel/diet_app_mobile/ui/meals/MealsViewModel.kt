@@ -27,12 +27,27 @@ class MealsViewModel @Inject constructor(
     productRepository: ProductRepository,
     private val mealSeeder: MealSeeder,
 ) : ViewModel() {
+    private val searchQuery = MutableStateFlow("")
+
     val meals: StateFlow<List<Meal>> = mealRepository.observeMeals()
+        .combine(searchQuery) { meals, query ->
+            val normalizedQuery = query.trim()
+            if (normalizedQuery.isBlank()) {
+                meals
+            } else {
+                meals.filter { meal ->
+                    meal.name.contains(normalizedQuery, ignoreCase = true) ||
+                        meal.category.contains(normalizedQuery, ignoreCase = true)
+                }
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    val query: StateFlow<String> = searchQuery.asStateFlow()
 
     private val products: StateFlow<List<Product>> = productRepository.observeProducts()
         .stateIn(
@@ -47,12 +62,13 @@ class MealsViewModel @Inject constructor(
     private val _editorState = MutableStateFlow<MealEditorState?>(null)
     val editorState: StateFlow<MealEditorState?> = _editorState.asStateFlow()
 
-    private val _ingredientFormState = MutableStateFlow(IngredientFormState())
-    val ingredientFormState: StateFlow<IngredientFormState> = _ingredientFormState.asStateFlow()
+    private val _ingredientEditorState = MutableStateFlow<IngredientEditorState?>(null)
+    val ingredientEditorState: StateFlow<IngredientEditorState?> = _ingredientEditorState.asStateFlow()
 
     val ingredientProducts: StateFlow<List<Product>> = products
-        .combine(_ingredientFormState) { products, formState ->
-            val query = formState.productQuery.trim()
+        .combine(_ingredientEditorState) { products, editorState ->
+            if (editorState == null) return@combine emptyList()
+            val query = editorState.productQuery.trim()
             val filteredProducts = if (query.isBlank()) {
                 products
             } else {
@@ -75,6 +91,10 @@ class MealsViewModel @Inject constructor(
     }
 
     fun onNameChange(value: String) = updateForm { copy(name = value, errorMessage = null) }
+
+    fun onSearchQueryChange(value: String) {
+        searchQuery.value = value
+    }
 
     fun onCategoryChange(value: String) = updateForm { copy(category = value, errorMessage = null) }
 
@@ -106,12 +126,12 @@ class MealsViewModel @Inject constructor(
 
     fun openMealEditor(meal: Meal) {
         _editorState.value = meal.toEditorState()
-        _ingredientFormState.value = IngredientFormState()
+        _ingredientEditorState.value = null
     }
 
     fun closeMealEditor() {
         _editorState.value = null
-        _ingredientFormState.value = IngredientFormState()
+        _ingredientEditorState.value = null
     }
 
     fun onEditorNameChange(value: String) = updateEditor { copy(name = value, errorMessage = null) }
@@ -122,15 +142,35 @@ class MealsViewModel @Inject constructor(
         copy(description = value, errorMessage = null)
     }
 
+    fun openAddIngredient() {
+        if (editorState.value == null) return
+        _ingredientEditorState.value = IngredientEditorState(editIndex = null)
+    }
+
+    fun openEditIngredient(index: Int) {
+        val editor = editorState.value ?: return
+        val ingredient = editor.ingredients.getOrNull(index) ?: return
+        _ingredientEditorState.value = IngredientEditorState(
+            editIndex = index,
+            productQuery = ingredient.product.name,
+            selectedProductId = ingredient.product.id,
+            quantityGrams = ingredient.quantityGrams.toPlainString(),
+        )
+    }
+
+    fun closeIngredientEditor() {
+        _ingredientEditorState.value = null
+    }
+
     fun onProductQueryChange(value: String) {
-        _ingredientFormState.update {
-            it.copy(productQuery = value, selectedProductId = null, errorMessage = null)
+        _ingredientEditorState.update { state ->
+            state?.copy(productQuery = value, selectedProductId = null, errorMessage = null)
         }
     }
 
     fun selectIngredientProduct(product: Product) {
-        _ingredientFormState.update {
-            it.copy(
+        _ingredientEditorState.update { state ->
+            state?.copy(
                 productQuery = product.name,
                 selectedProductId = product.id,
                 errorMessage = null,
@@ -139,18 +179,20 @@ class MealsViewModel @Inject constructor(
     }
 
     fun onQuantityGramsChange(value: String) {
-        _ingredientFormState.update { it.copy(quantityGrams = value, errorMessage = null) }
+        _ingredientEditorState.update { state ->
+            state?.copy(quantityGrams = value, errorMessage = null)
+        }
     }
 
-    fun addIngredientToDraft() {
-        val editor = editorState.value
-        val state = ingredientFormState.value
+    fun saveIngredient() {
+        val editor = editorState.value ?: return
+        val state = ingredientEditorState.value ?: return
         val selectedProduct = products.value.firstOrNull { product -> product.id == state.selectedProductId }
-        val quantityGrams = state.quantityGrams.toDoubleOrNull()
+        val quantityGrams = state.quantityGrams.replace(',', '.').toDoubleOrNull()
 
-        if (editor == null || selectedProduct == null || quantityGrams == null || quantityGrams <= 0.0) {
-            _ingredientFormState.update {
-                it.copy(errorMessage = "Wybierz produkt i podaj poprawną gramaturę.")
+        if (selectedProduct == null || quantityGrams == null || quantityGrams <= 0.0) {
+            _ingredientEditorState.update {
+                it?.copy(errorMessage = "Wybierz produkt i podaj poprawną gramaturę.")
             }
             return
         }
@@ -162,13 +204,16 @@ class MealsViewModel @Inject constructor(
             nutrition = selectedProduct.nutritionForGrams(quantityGrams),
         )
 
+        val editIndex = state.editIndex
         updateEditor {
-            copy(
-                ingredients = ingredients + ingredient,
-                errorMessage = null,
-            )
+            val newIngredients = if (editIndex != null && editIndex in ingredients.indices) {
+                ingredients.toMutableList().also { it[editIndex] = ingredient }
+            } else {
+                ingredients + ingredient
+            }
+            copy(ingredients = newIngredients, errorMessage = null)
         }
-        _ingredientFormState.value = IngredientFormState()
+        _ingredientEditorState.value = null
     }
 
     fun removeIngredientFromDraft(index: Int) {
@@ -180,6 +225,13 @@ class MealsViewModel @Inject constructor(
                 errorMessage = null,
             )
         }
+    }
+
+    fun removeIngredientFromEditor() {
+        val state = ingredientEditorState.value ?: return
+        val index = state.editIndex ?: return
+        removeIngredientFromDraft(index)
+        _ingredientEditorState.value = null
     }
 
     fun saveMealChanges() {
@@ -242,12 +294,18 @@ data class MealEditorState(
         }
 }
 
-data class IngredientFormState(
+data class IngredientEditorState(
+    val editIndex: Int?,
     val productQuery: String = "",
     val selectedProductId: Long? = null,
     val quantityGrams: String = "",
     val errorMessage: String? = null,
-)
+) {
+    val isEditing: Boolean get() = editIndex != null
+}
+
+private fun Double.toPlainString(): String =
+    if (this % 1.0 == 0.0) toLong().toString() else toString()
 
 val MEAL_CATEGORIES = listOf(
     "Śniadanie",

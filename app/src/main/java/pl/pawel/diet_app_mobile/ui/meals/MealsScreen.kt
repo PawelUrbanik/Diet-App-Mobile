@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -42,18 +40,21 @@ fun MealsRoute(
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
     val meals by viewModel.meals.collectAsState()
+    val query by viewModel.query.collectAsState()
     val formState by viewModel.formState.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
-    val ingredientFormState by viewModel.ingredientFormState.collectAsState()
+    val ingredientEditorState by viewModel.ingredientEditorState.collectAsState()
     val ingredientProducts by viewModel.ingredientProducts.collectAsState()
 
     MealsScreen(
         meals = meals,
+        query = query,
         formState = formState,
         editorState = editorState,
-        ingredientFormState = ingredientFormState,
+        ingredientEditorState = ingredientEditorState,
         ingredientProducts = ingredientProducts,
         onNameChange = viewModel::onNameChange,
+        onSearchQueryChange = viewModel::onSearchQueryChange,
         onCategoryChange = viewModel::onCategoryChange,
         onDescriptionChange = viewModel::onDescriptionChange,
         onAddMeal = viewModel::addMeal,
@@ -62,11 +63,14 @@ fun MealsRoute(
         onEditorNameChange = viewModel::onEditorNameChange,
         onEditorCategoryChange = viewModel::onEditorCategoryChange,
         onEditorDescriptionChange = viewModel::onEditorDescriptionChange,
+        onAddIngredientClick = viewModel::openAddIngredient,
+        onEditIngredientClick = viewModel::openEditIngredient,
+        onCloseIngredientEditor = viewModel::closeIngredientEditor,
         onProductQueryChange = viewModel::onProductQueryChange,
         onProductClick = viewModel::selectIngredientProduct,
         onQuantityGramsChange = viewModel::onQuantityGramsChange,
-        onAddIngredient = viewModel::addIngredientToDraft,
-        onRemoveIngredient = viewModel::removeIngredientFromDraft,
+        onSaveIngredient = viewModel::saveIngredient,
+        onDeleteIngredient = viewModel::removeIngredientFromEditor,
         onSaveMeal = viewModel::saveMealChanges,
     )
 }
@@ -75,11 +79,13 @@ fun MealsRoute(
 @Composable
 private fun MealsScreen(
     meals: List<Meal>,
+    query: String,
     formState: MealFormState,
     editorState: MealEditorState?,
-    ingredientFormState: IngredientFormState,
+    ingredientEditorState: IngredientEditorState?,
     ingredientProducts: List<Product>,
     onNameChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
@@ -88,20 +94,35 @@ private fun MealsScreen(
     onEditorNameChange: (String) -> Unit,
     onEditorCategoryChange: (String) -> Unit,
     onEditorDescriptionChange: (String) -> Unit,
+    onAddIngredientClick: () -> Unit,
+    onEditIngredientClick: (Int) -> Unit,
+    onCloseIngredientEditor: () -> Unit,
     onProductQueryChange: (String) -> Unit,
     onProductClick: (Product) -> Unit,
     onQuantityGramsChange: (String) -> Unit,
-    onAddIngredient: () -> Unit,
-    onRemoveIngredient: (Int) -> Unit,
+    onSaveIngredient: () -> Unit,
+    onDeleteIngredient: () -> Unit,
     onSaveMeal: () -> Unit,
 ) {
+    val title = when {
+        ingredientEditorState != null && ingredientEditorState.isEditing -> "Edycja składnika"
+        ingredientEditorState != null -> "Nowy składnik"
+        editorState != null -> "Edycja posiłku"
+        else -> "Posiłki"
+    }
+    val onBack: (() -> Unit)? = when {
+        ingredientEditorState != null -> onCloseIngredientEditor
+        editorState != null -> onBackToList
+        else -> null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (editorState == null) "Posiłki" else "Edycja posiłku") },
+                title = { Text(title) },
                 navigationIcon = {
-                    if (editorState != null) {
-                        TextButton(onClick = onBackToList) {
+                    if (onBack != null) {
+                        TextButton(onClick = onBack) {
                             Text("Wróć")
                         }
                     }
@@ -109,33 +130,40 @@ private fun MealsScreen(
             )
         },
     ) { innerPadding ->
-        if (editorState == null) {
-            MealsListContent(
-                meals = meals,
-                formState = formState,
-                modifier = Modifier.padding(innerPadding),
-                onNameChange = onNameChange,
-                onCategoryChange = onCategoryChange,
-                onDescriptionChange = onDescriptionChange,
-                onAddMeal = onAddMeal,
-                onMealClick = onMealClick,
-            )
-        } else {
-            MealEditorContent(
-                editorState = editorState,
-                ingredientFormState = ingredientFormState,
+        when {
+            ingredientEditorState != null -> IngredientEditorContent(
+                state = ingredientEditorState,
                 products = ingredientProducts,
+                modifier = Modifier.padding(innerPadding),
+                onProductQueryChange = onProductQueryChange,
+                onProductClick = onProductClick,
+                onQuantityGramsChange = onQuantityGramsChange,
+                onSaveIngredient = onSaveIngredient,
+                onDeleteIngredient = onDeleteIngredient,
+                onCancel = onCloseIngredientEditor,
+            )
+            editorState != null -> MealEditorContent(
+                editorState = editorState,
                 modifier = Modifier.padding(innerPadding),
                 onNameChange = onEditorNameChange,
                 onCategoryChange = onEditorCategoryChange,
                 onDescriptionChange = onEditorDescriptionChange,
-                onProductQueryChange = onProductQueryChange,
-                onProductClick = onProductClick,
-                onQuantityGramsChange = onQuantityGramsChange,
-                onAddIngredient = onAddIngredient,
-                onRemoveIngredient = onRemoveIngredient,
+                onAddIngredientClick = onAddIngredientClick,
+                onEditIngredientClick = onEditIngredientClick,
                 onSaveMeal = onSaveMeal,
                 onBackToList = onBackToList,
+            )
+            else -> MealsListContent(
+                meals = meals,
+                formState = formState,
+                modifier = Modifier.padding(innerPadding),
+                onNameChange = onNameChange,
+                query = query,
+                onSearchQueryChange = onSearchQueryChange,
+                onCategoryChange = onCategoryChange,
+                onDescriptionChange = onDescriptionChange,
+                onAddMeal = onAddMeal,
+                onMealClick = onMealClick,
             )
         }
     }
@@ -145,8 +173,10 @@ private fun MealsScreen(
 private fun MealsListContent(
     meals: List<Meal>,
     formState: MealFormState,
+    query: String,
     modifier: Modifier = Modifier,
     onNameChange: (String) -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
@@ -174,8 +204,18 @@ private fun MealsListContent(
             )
         }
 
+        item {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Szukaj posiłku") },
+                singleLine = true,
+            )
+        }
+
         if (meals.isEmpty()) {
-            item { EmptyMealsCard() }
+            item { EmptyMealsCard(hasActiveQuery = query.isNotBlank()) }
         } else {
             items(
                 items = meals,
@@ -193,17 +233,12 @@ private fun MealsListContent(
 @Composable
 private fun MealEditorContent(
     editorState: MealEditorState,
-    ingredientFormState: IngredientFormState,
-    products: List<Product>,
     modifier: Modifier = Modifier,
     onNameChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onProductQueryChange: (String) -> Unit,
-    onProductClick: (Product) -> Unit,
-    onQuantityGramsChange: (String) -> Unit,
-    onAddIngredient: () -> Unit,
-    onRemoveIngredient: (Int) -> Unit,
+    onAddIngredientClick: () -> Unit,
+    onEditIngredientClick: (Int) -> Unit,
     onSaveMeal: () -> Unit,
     onBackToList: () -> Unit,
 ) {
@@ -224,18 +259,8 @@ private fun MealEditorContent(
         item {
             IngredientsCard(
                 ingredients = editorState.ingredients,
-                onRemoveIngredient = onRemoveIngredient,
-            )
-        }
-
-        item {
-            AddIngredientCard(
-                formState = ingredientFormState,
-                products = products,
-                onProductQueryChange = onProductQueryChange,
-                onProductClick = onProductClick,
-                onQuantityGramsChange = onQuantityGramsChange,
-                onAddIngredient = onAddIngredient,
+                onEditIngredient = onEditIngredientClick,
+                onAddIngredientClick = onAddIngredientClick,
             )
         }
 
@@ -245,6 +270,85 @@ private fun MealEditorContent(
                 onSaveMeal = onSaveMeal,
                 onBackToList = onBackToList,
             )
+        }
+    }
+}
+
+@Composable
+private fun IngredientEditorContent(
+    state: IngredientEditorState,
+    products: List<Product>,
+    modifier: Modifier = Modifier,
+    onProductQueryChange: (String) -> Unit,
+    onProductClick: (Product) -> Unit,
+    onQuantityGramsChange: (String) -> Unit,
+    onSaveIngredient: () -> Unit,
+    onDeleteIngredient: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Text(
+                text = if (state.isEditing) "Edytuj składnik" else "Dodaj składnik",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.productQuery,
+                onValueChange = onProductQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Szukaj produktu") },
+                singleLine = true,
+            )
+        }
+        item {
+            ProductResults(
+                products = products,
+                selectedProductId = state.selectedProductId,
+                onProductClick = onProductClick,
+            )
+        }
+        item {
+            OutlinedTextField(
+                value = state.quantityGrams,
+                onValueChange = onQuantityGramsChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Ilość w gramach") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+        }
+        state.errorMessage?.let { item { ErrorText(it) } }
+        item {
+            Button(
+                onClick = onSaveIngredient,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (state.isEditing) "Zapisz zmiany" else "Dodaj składnik")
+            }
+        }
+        if (state.isEditing) {
+            item {
+                OutlinedButton(
+                    onClick = onDeleteIngredient,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Usuń składnik")
+                }
+            }
+        }
+        item {
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Anuluj")
+            }
         }
     }
 }
@@ -364,10 +468,14 @@ private fun MealCategoryChips(
 }
 
 @Composable
-private fun EmptyMealsCard() {
+private fun EmptyMealsCard(hasActiveQuery: Boolean) {
     Card {
         Text(
-            text = "Brak posiłków. Dodaj pierwszy posiłek, a potem przejdź do edycji i przypisz składniki.",
+            text = if (hasActiveQuery) {
+                "Brak posiłków pasujących do wyszukiwania."
+            } else {
+                "Brak posiłków. Dodaj pierwszy posiłek, a potem przejdź do edycji i przypisz składniki."
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
@@ -421,7 +529,8 @@ private fun MealListCard(
 @Composable
 private fun IngredientsCard(
     ingredients: List<MealIngredient>,
-    onRemoveIngredient: (Int) -> Unit,
+    onEditIngredient: (Int) -> Unit,
+    onAddIngredientClick: () -> Unit,
 ) {
     Card {
         Column(
@@ -439,56 +548,12 @@ private fun IngredientsCard(
                 ingredients.forEachIndexed { index, ingredient ->
                     IngredientRow(
                         ingredient = ingredient,
-                        onRemoveClick = { onRemoveIngredient(index) },
+                        onEditClick = { onEditIngredient(index) },
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AddIngredientCard(
-    formState: IngredientFormState,
-    products: List<Product>,
-    onProductQueryChange: (String) -> Unit,
-    onProductClick: (Product) -> Unit,
-    onQuantityGramsChange: (String) -> Unit,
-    onAddIngredient: () -> Unit,
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Dodaj składnik", style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                value = formState.productQuery,
-                onValueChange = onProductQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Szukaj produktu") },
-                singleLine = true,
-            )
-            ProductResults(
-                products = products,
-                selectedProductId = formState.selectedProductId,
-                onProductClick = onProductClick,
-            )
-            OutlinedTextField(
-                value = formState.quantityGrams,
-                onValueChange = onQuantityGramsChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Ilość w gramach") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-            formState.errorMessage?.let { ErrorText(it) }
             Button(
-                onClick = onAddIngredient,
+                onClick = onAddIngredientClick,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Dodaj składnik")
@@ -528,7 +593,7 @@ private fun ProductResults(
 @Composable
 private fun IngredientRow(
     ingredient: MealIngredient,
-    onRemoveClick: () -> Unit,
+    onEditClick: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -541,10 +606,10 @@ private fun IngredientRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         OutlinedButton(
-            onClick = onRemoveClick,
+            onClick = onEditClick,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Usuń składnik")
+            Text("Edytuj składnik")
         }
     }
 }
