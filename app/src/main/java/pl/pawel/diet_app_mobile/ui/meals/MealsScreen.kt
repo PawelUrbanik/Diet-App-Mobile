@@ -575,7 +575,7 @@ private fun MealCategorySegmentedButton(
 @Composable
 private fun MealListCard(meal: Meal, onEditClick: () -> Unit) {
     val categoryColor = mealCategoryColor(meal.category)
-    Card {
+    Card(onClick = onEditClick) {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             Box(
                 modifier = Modifier
@@ -617,9 +617,6 @@ private fun MealListCard(meal: Meal, onEditClick: () -> Unit) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) {
-                    Text("Edytuj")
-                }
             }
         }
     }
