@@ -26,10 +26,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -116,6 +119,7 @@ fun MealsRoute(
         onRemoveIngredient = viewModel::removeIngredientFromDraft,
         onCloseIngredientEditor = viewModel::closeIngredientEditor,
         onProductQueryChange = viewModel::onProductQueryChange,
+        onSortByChange = viewModel::onSortByChange,
         onProductClick = viewModel::selectIngredientProduct,
         onQuantityGramsChange = viewModel::onQuantityGramsChange,
         onSaveIngredient = viewModel::saveIngredient,
@@ -154,6 +158,7 @@ private fun MealsScreen(
     onRemoveIngredient: (Int) -> Unit,
     onCloseIngredientEditor: () -> Unit,
     onProductQueryChange: (String) -> Unit,
+    onSortByChange: (ProductSortBy) -> Unit,
     onProductClick: (Product) -> Unit,
     onQuantityGramsChange: (String) -> Unit,
     onSaveIngredient: () -> Unit,
@@ -235,6 +240,7 @@ private fun MealsScreen(
                         state = ingredientEditorState ?: return@AnimatedContent,
                         products = ingredientProducts,
                         onProductQueryChange = onProductQueryChange,
+                        onSortByChange = onSortByChange,
                         onProductClick = onProductClick,
                         onQuantityGramsChange = onQuantityGramsChange,
                         onSaveIngredient = onSaveIngredient,
@@ -450,6 +456,7 @@ private fun IngredientEditorContent(
     state: IngredientEditorState,
     products: List<Product>,
     onProductQueryChange: (String) -> Unit,
+    onSortByChange: (ProductSortBy) -> Unit,
     onProductClick: (Product) -> Unit,
     onQuantityGramsChange: (String) -> Unit,
     onSaveIngredient: () -> Unit,
@@ -466,6 +473,12 @@ private fun IngredientEditorContent(
                 onQueryChange = onProductQueryChange,
                 placeholder = "Szukaj produktu",
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            ProductSortChips(
+                sortBy = state.sortBy,
+                onSortByChange = onSortByChange,
             )
         }
         item {
@@ -717,6 +730,25 @@ private fun IngredientRow(ingredient: MealIngredient, onEditClick: () -> Unit) {
             contentDescription = "Edytuj składnik",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun ProductSortChips(
+    sortBy: ProductSortBy,
+    onSortByChange: (ProductSortBy) -> Unit,
+) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ProductSortBy.entries.forEach { sort ->
+            FilterChip(
+                selected = sortBy == sort,
+                onClick = { onSortByChange(sort) },
+                label = { Text(sort.label) },
+            )
+        }
     }
 }
 

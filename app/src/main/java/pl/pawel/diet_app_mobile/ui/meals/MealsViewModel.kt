@@ -79,7 +79,14 @@ class MealsViewModel @Inject constructor(
                     product.name.contains(query, ignoreCase = true)
                 }
             }
-            filteredProducts.take(PRODUCT_RESULT_LIMIT)
+            val sorted = when (editorState.sortBy) {
+                ProductSortBy.Name -> filteredProducts.sortedBy { it.name }
+                ProductSortBy.Calories -> filteredProducts.sortedByDescending { it.caloriesPer100g }
+                ProductSortBy.Protein -> filteredProducts.sortedByDescending { it.proteinPer100g }
+                ProductSortBy.Fat -> filteredProducts.sortedByDescending { it.fatPer100g }
+                ProductSortBy.Carbs -> filteredProducts.sortedByDescending { it.carbsPer100g }
+            }
+            sorted.take(PRODUCT_RESULT_LIMIT)
         }
         .stateIn(
             scope = viewModelScope,
@@ -205,6 +212,10 @@ class MealsViewModel @Inject constructor(
         }
     }
 
+    fun onSortByChange(sort: ProductSortBy) {
+        _ingredientEditorState.update { state -> state?.copy(sortBy = sort) }
+    }
+
     fun onQuantityGramsChange(value: String) {
         _ingredientEditorState.update { state ->
             state?.copy(quantityGrams = value, errorMessage = null)
@@ -327,8 +338,17 @@ data class IngredientEditorState(
     val selectedProductId: Long? = null,
     val quantityGrams: String = "",
     val errorMessage: String? = null,
+    val sortBy: ProductSortBy = ProductSortBy.Name,
 ) {
     val isEditing: Boolean get() = editIndex != null
+}
+
+enum class ProductSortBy(val label: String) {
+    Name("Nazwa"),
+    Calories("kcal"),
+    Protein("Białko"),
+    Fat("Tłuszcz"),
+    Carbs("Węgle"),
 }
 
 private fun Double.toPlainString(): String =
