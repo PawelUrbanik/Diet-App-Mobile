@@ -22,18 +22,27 @@ class ProductsViewModel @Inject constructor(
     private val productSeeder: ProductSeeder,
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow("")
+    private val _sortBy = MutableStateFlow(ProductSortBy.Name)
 
-    val products: StateFlow<List<Product>> = productRepository.observeProducts()
-        .combine(searchQuery) { products, query ->
-            val normalizedQuery = query.trim()
-            if (normalizedQuery.isBlank()) {
-                products
-            } else {
-                products.filter { product ->
-                    product.name.contains(normalizedQuery, ignoreCase = true)
-                }
-            }
+    val products: StateFlow<List<Product>> = combine(
+        productRepository.observeProducts(),
+        searchQuery,
+        _sortBy,
+    ) { products, query, sort ->
+        val normalizedQuery = query.trim()
+        val filtered = if (normalizedQuery.isBlank()) {
+            products
+        } else {
+            products.filter { it.name.contains(normalizedQuery, ignoreCase = true) }
         }
+        when (sort) {
+            ProductSortBy.Name -> filtered.sortedBy { it.name }
+            ProductSortBy.Calories -> filtered.sortedByDescending { it.caloriesPer100g }
+            ProductSortBy.Protein -> filtered.sortedByDescending { it.proteinPer100g }
+            ProductSortBy.Fat -> filtered.sortedByDescending { it.fatPer100g }
+            ProductSortBy.Carbs -> filtered.sortedByDescending { it.carbsPer100g }
+        }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -41,6 +50,7 @@ class ProductsViewModel @Inject constructor(
         )
 
     val query: StateFlow<String> = searchQuery.asStateFlow()
+    val sortBy: StateFlow<ProductSortBy> = _sortBy.asStateFlow()
 
     private val _editorState = MutableStateFlow<ProductFormState?>(null)
     val editorState: StateFlow<ProductFormState?> = _editorState.asStateFlow()
@@ -56,6 +66,10 @@ class ProductsViewModel @Inject constructor(
 
     fun onSearchQueryChange(value: String) {
         searchQuery.value = value
+    }
+
+    fun onSortByChange(sort: ProductSortBy) {
+        _sortBy.value = sort
     }
 
     fun onNameChange(value: String) = updateForm { copy(name = value, errorMessage = null) }
@@ -218,3 +232,11 @@ private fun Double.formatInput(): String =
     } else {
         toString()
     }
+
+enum class ProductSortBy(val label: String) {
+    Name("Nazwa"),
+    Calories("kcal"),
+    Protein("Białko"),
+    Fat("Tłuszcz"),
+    Carbs("Węgle"),
+}

@@ -20,6 +20,7 @@ import pl.pawel.diet_app_mobile.domain.model.Product
 import pl.pawel.diet_app_mobile.domain.model.nutritionForGrams
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
 import pl.pawel.diet_app_mobile.domain.repository.ProductRepository
+import pl.pawel.diet_app_mobile.ui.products.ProductSortBy
 
 @HiltViewModel
 class MealsViewModel @Inject constructor(
@@ -341,14 +342,6 @@ data class IngredientEditorState(
     val sortBy: ProductSortBy = ProductSortBy.Name,
 ) {
     val isEditing: Boolean get() = editIndex != null
-}
-
-enum class ProductSortBy(val label: String) {
-    Name("Nazwa"),
-    Calories("kcal"),
-    Protein("Białko"),
-    Fat("Tłuszcz"),
-    Carbs("Węgle"),
 }
 
 private fun Double.toPlainString(): String =

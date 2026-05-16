@@ -6,8 +6,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocalGroceryStore
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -64,14 +67,17 @@ fun ProductsRoute(
     val products by viewModel.products.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
     val query by viewModel.query.collectAsState()
+    val sortBy by viewModel.sortBy.collectAsState()
     val productPendingDelete by viewModel.productPendingDelete.collectAsState()
 
     ProductsScreen(
         products = products,
         query = query,
+        sortBy = sortBy,
         editorState = editorState,
         productPendingDelete = productPendingDelete,
         onSearchQueryChange = viewModel::onSearchQueryChange,
+        onSortByChange = viewModel::onSortByChange,
         onOpenAddProduct = viewModel::openAddProduct,
         onProductClick = viewModel::openEditProduct,
         onCloseEditor = viewModel::closeEditor,
@@ -93,9 +99,11 @@ fun ProductsRoute(
 private fun ProductsScreen(
     products: List<Product>,
     query: String,
+    sortBy: ProductSortBy,
     editorState: ProductFormState?,
     productPendingDelete: Product?,
     onSearchQueryChange: (String) -> Unit,
+    onSortByChange: (ProductSortBy) -> Unit,
     onOpenAddProduct: () -> Unit,
     onProductClick: (Product) -> Unit,
     onCloseEditor: () -> Unit,
@@ -178,7 +186,9 @@ private fun ProductsScreen(
                     ProductsListContent(
                         products = products,
                         query = query,
+                        sortBy = sortBy,
                         onSearchQueryChange = onSearchQueryChange,
+                        onSortByChange = onSortByChange,
                         onOpenAddProduct = onOpenAddProduct,
                         onProductClick = onProductClick,
                         onRequestDeleteProduct = onRequestDeleteProduct,
@@ -192,7 +202,9 @@ private fun ProductsScreen(
 private fun ProductsListContent(
     products: List<Product>,
     query: String,
+    sortBy: ProductSortBy,
     onSearchQueryChange: (String) -> Unit,
+    onSortByChange: (ProductSortBy) -> Unit,
     onOpenAddProduct: () -> Unit,
     onProductClick: (Product) -> Unit,
     onRequestDeleteProduct: (Product) -> Unit,
@@ -209,6 +221,20 @@ private fun ProductsListContent(
                 placeholder = "Szukaj produktu",
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        item {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ProductSortBy.entries.forEach { sort ->
+                    FilterChip(
+                        selected = sortBy == sort,
+                        onClick = { onSortByChange(sort) },
+                        label = { Text(sort.label) },
+                    )
+                }
+            }
         }
 
         if (products.isEmpty()) {

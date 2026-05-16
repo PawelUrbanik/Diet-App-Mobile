@@ -72,6 +72,7 @@ import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
 import pl.pawel.diet_app_mobile.ui.components.productCategoryIcon
+import pl.pawel.diet_app_mobile.ui.products.ProductSortBy
 import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
 import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
 import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
