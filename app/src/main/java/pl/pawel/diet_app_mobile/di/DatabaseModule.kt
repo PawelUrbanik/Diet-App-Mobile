@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import pl.pawel.diet_app_mobile.data.local.dao.MealDao
+import pl.pawel.diet_app_mobile.data.local.dao.MealPlanDao
 import pl.pawel.diet_app_mobile.data.local.dao.ProductDao
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_1_2
@@ -32,4 +33,7 @@ object DatabaseModule {
 
     @Provides
     fun provideMealDao(database: DietAppDatabase): MealDao = database.mealDao()
+
+    @Provides
+    fun provideMealPlanDao(database: DietAppDatabase): MealPlanDao = database.mealPlanDao()
 }
