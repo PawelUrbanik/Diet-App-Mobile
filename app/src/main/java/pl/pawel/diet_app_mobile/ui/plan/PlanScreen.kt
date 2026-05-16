@@ -690,9 +690,8 @@ private fun MealPicker(
         )
         return
     }
-    val visibleMeals = meals.take(8)
     Card {
-        visibleMeals.forEachIndexed { index, meal ->
+        meals.forEachIndexed { index, meal ->
             ListItem(
                 headlineContent = { Text(meal.name) },
                 supportingContent = {
@@ -713,7 +712,7 @@ private fun MealPicker(
                 ),
                 modifier = Modifier.clickable { onSelect(meal) },
             )
-            if (index < visibleMeals.lastIndex) HorizontalDivider()
+            if (index < meals.lastIndex) HorizontalDivider()
         }
     }
 }
