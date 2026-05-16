@@ -191,6 +191,21 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    fun copyFromPreviousDay(date: LocalDate, mealType: String) {
+        val sourceDate = date.minusDays(1)
+        val targetWeekStart = date.mondayOfWeek()
+        viewModelScope.launch {
+            runCatching {
+                mealPlanRepository.copyDayCategory(
+                    sourceDate = sourceDate,
+                    targetDate = date,
+                    targetWeekStartDate = targetWeekStart,
+                    mealType = mealType,
+                )
+            }
+        }
+    }
+
     fun removePlannedMealFromEdit() {
         val dialog = _editDialog.value ?: return
         _editDialog.value = null

@@ -31,6 +31,12 @@ interface MealPlanDao {
     )
     suspend fun getMaxPositionForSlot(mealPlanId: Long, date: String, mealType: String): Int
 
+    @Query(
+        "SELECT * FROM planned_meals WHERE date = :date AND mealType = :mealType " +
+            "ORDER BY position ASC",
+    )
+    suspend fun getPlannedMealsForSlot(date: String, mealType: String): List<PlannedMealEntity>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPlan(plan: MealPlanEntity): Long
 

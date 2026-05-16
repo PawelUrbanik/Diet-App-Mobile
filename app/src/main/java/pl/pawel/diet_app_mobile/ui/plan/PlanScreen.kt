@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -125,6 +126,7 @@ fun PlanRoute(
         onConfirmEdit = viewModel::confirmEdit,
         onRemoveFromEdit = viewModel::removePlannedMealFromEdit,
         onSwipeRemove = viewModel::removePlannedMeal,
+        onCopyFromPreviousDay = viewModel::copyFromPreviousDay,
     )
 }
 
@@ -154,6 +156,7 @@ private fun PlanScreen(
     onConfirmEdit: () -> Unit,
     onRemoveFromEdit: () -> Unit,
     onSwipeRemove: (Long) -> Unit,
+    onCopyFromPreviousDay: (LocalDate, String) -> Unit,
 ) {
     val today = remember { LocalDate.now() }
     val initialPage = if (today in weekStartDate..weekStartDate.plusDays(6)) {
@@ -216,6 +219,7 @@ private fun PlanScreen(
                     onOpenAddSheet = onOpenAddSheet,
                     onOpenEditDialog = onOpenEditDialog,
                     onSwipeRemove = onSwipeRemove,
+                    onCopyFromPreviousDay = onCopyFromPreviousDay,
                 )
             }
         }
@@ -344,6 +348,7 @@ private fun DayContent(
     onOpenAddSheet: (LocalDate, String) -> Unit,
     onOpenEditDialog: (PlannedMeal) -> Unit,
     onSwipeRemove: (Long) -> Unit,
+    onCopyFromPreviousDay: (LocalDate, String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -359,6 +364,7 @@ private fun DayContent(
                 date = dayPlan.date,
                 plannedMeals = dayPlan.mealsForCategory(category),
                 onAddClick = { onOpenAddSheet(dayPlan.date, category) },
+                onCopyFromPreviousDay = { onCopyFromPreviousDay(dayPlan.date, category) },
                 onMealClick = onOpenEditDialog,
                 onSwipeRemove = onSwipeRemove,
             )
@@ -411,6 +417,7 @@ private fun CategorySection(
     date: LocalDate,
     plannedMeals: List<PlannedMeal>,
     onAddClick: () -> Unit,
+    onCopyFromPreviousDay: () -> Unit,
     onMealClick: (PlannedMeal) -> Unit,
     onSwipeRemove: (Long) -> Unit,
 ) {
@@ -427,6 +434,7 @@ private fun CategorySection(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(
                         imageVector = mealCategoryIcon(category),
@@ -439,6 +447,14 @@ private fun CategorySection(
                         style = MaterialTheme.typography.titleSmall,
                         color = categoryColor,
                         fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                IconButton(onClick = onCopyFromPreviousDay) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Kopiuj z wczoraj",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 TextButton(onClick = onAddClick) {

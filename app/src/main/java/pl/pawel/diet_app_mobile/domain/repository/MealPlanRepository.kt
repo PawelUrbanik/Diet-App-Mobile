@@ -18,4 +18,15 @@ interface MealPlanRepository {
     suspend fun updatePlannedMealServings(plannedMealId: Long, servings: Double)
 
     suspend fun removePlannedMeal(plannedMealId: Long)
+
+    /**
+     * Copies all planned meals from [sourceDate] in [mealType] to [targetDate] under [targetWeekStartDate].
+     * Returns number of meals copied (0 if source slot was empty).
+     */
+    suspend fun copyDayCategory(
+        sourceDate: LocalDate,
+        targetDate: LocalDate,
+        targetWeekStartDate: LocalDate,
+        mealType: String,
+    ): Int
 }

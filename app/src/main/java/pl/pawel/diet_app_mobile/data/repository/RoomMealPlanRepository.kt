@@ -80,6 +80,28 @@ class RoomMealPlanRepository @Inject constructor(
         mealPlanDao.deletePlannedMealById(plannedMealId)
     }
 
+    override suspend fun copyDayCategory(
+        sourceDate: LocalDate,
+        targetDate: LocalDate,
+        targetWeekStartDate: LocalDate,
+        mealType: String,
+    ): Int {
+        val sourceMeals = mealPlanDao.getPlannedMealsForSlot(
+            date = sourceDate.format(DATE_FORMATTER),
+            mealType = mealType,
+        )
+        sourceMeals.forEach { source ->
+            mealPlanDao.addPlannedMeal(
+                weekStartDate = targetWeekStartDate.format(DATE_FORMATTER),
+                mealId = source.mealId,
+                date = targetDate.format(DATE_FORMATTER),
+                mealType = mealType,
+                servings = source.servings,
+            )
+        }
+        return sourceMeals.size
+    }
+
     private companion object {
         val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     }
