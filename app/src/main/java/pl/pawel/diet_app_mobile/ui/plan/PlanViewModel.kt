@@ -114,16 +114,15 @@ class PlanViewModel @Inject constructor(
         _servingsDialog.value = null
     }
 
-    fun onDialogServingsChange(value: String) {
+    fun onDialogServingsChange(value: Double) {
         _servingsDialog.update { it?.copy(servings = value, errorMessage = null) }
     }
 
     fun confirmAdd() {
         val dialog = _servingsDialog.value ?: return
-        val servings = dialog.servings.replace(',', '.').toDoubleOrNull()
 
-        if (servings == null || servings <= 0.0) {
-            _servingsDialog.update { it?.copy(errorMessage = "Podaj poprawną liczbę porcji.") }
+        if (dialog.servings <= 0.0) {
+            _servingsDialog.update { it?.copy(errorMessage = "Wybierz liczbę porcji.") }
             return
         }
 
@@ -134,7 +133,7 @@ class PlanViewModel @Inject constructor(
                     mealId = dialog.meal.id,
                     date = dialog.date,
                     mealType = dialog.mealType,
-                    servings = servings,
+                    servings = dialog.servings,
                 )
             }
                 .onSuccess {
@@ -210,7 +209,7 @@ data class ServingsDialogState(
     val date: LocalDate,
     val mealType: String,
     val meal: Meal,
-    val servings: String = "1",
+    val servings: Double = 1.0,
     val errorMessage: String? = null,
 )
 

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -145,7 +146,7 @@ private fun PlanScreen(
     onAddMealTypeChange: (String) -> Unit,
     onSelectMeal: (Meal) -> Unit,
     onCloseServingsDialog: () -> Unit,
-    onDialogServingsChange: (String) -> Unit,
+    onDialogServingsChange: (Double) -> Unit,
     onConfirmAdd: () -> Unit,
     onOpenEditSheet: (PlannedMeal) -> Unit,
     onCloseEditSheet: () -> Unit,
@@ -541,32 +542,41 @@ private fun AddMealBottomSheet(
     }
 }
 
+private val SERVING_OPTIONS: List<Double> = listOf(1.0, 1.5, 2.0)
+
 @Composable
 private fun ServingsDialog(
     state: ServingsDialogState,
     onDismiss: () -> Unit,
-    onServingsChange: (String) -> Unit,
+    onServingsChange: (Double) -> Unit,
     onConfirm: () -> Unit,
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(state.meal.name) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Wartości na 1 porcję",
+                    text = "Liczba porcji",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SERVING_OPTIONS.forEach { option ->
+                        FilterChip(
+                            selected = state.servings == option,
+                            onClick = { onServingsChange(option) },
+                            label = { Text("${option.formatServings()}×") },
+                        )
+                    }
+                }
+                HorizontalDivider()
+                Text(
+                    text = "Wartości za ${state.servings.formatServings()} porcji",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                NutritionMacroBars(nutrition = state.meal.nutrition)
-                OutlinedTextField(
-                    value = state.servings,
-                    onValueChange = onServingsChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Liczba porcji") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
+                NutritionMacroBars(nutrition = state.meal.nutrition.times(state.servings))
                 state.errorMessage?.let {
                     Text(
                         text = it,
