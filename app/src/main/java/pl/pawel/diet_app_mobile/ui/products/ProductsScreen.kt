@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocalGroceryStore
 import androidx.compose.material3.AlertDialog
@@ -26,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -132,8 +134,11 @@ private fun ProductsScreen(
                 title = { Text(text = title) },
                 navigationIcon = {
                     if (editorState != null) {
-                        TextButton(onClick = onCloseEditor) {
-                            Text("Wróć")
+                        IconButton(onClick = onCloseEditor) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Wróć",
+                            )
                         }
                     }
                 },
@@ -168,7 +173,6 @@ private fun ProductsScreen(
                         onCarbsChange = onCarbsChange,
                         onSaveProduct = onSaveProduct,
                         onDeleteProduct = onDeleteProductFromEditor,
-                        onCancel = onCloseEditor,
                     )
                 ProductsNavTarget.List ->
                     ProductsListContent(
@@ -278,7 +282,6 @@ private fun ProductEditorContent(
     onCarbsChange: (String) -> Unit,
     onSaveProduct: () -> Unit,
     onDeleteProduct: () -> Unit,
-    onCancel: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -343,15 +346,6 @@ private fun ProductEditorContent(
                 ) {
                     Text("Usuń produkt")
                 }
-            }
-        }
-        item {
-            TextButton(
-                onClick = onCancel,
-                enabled = !formState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Anuluj")
             }
         }
     }

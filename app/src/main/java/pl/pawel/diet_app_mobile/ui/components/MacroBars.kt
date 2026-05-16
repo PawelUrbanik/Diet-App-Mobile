@@ -99,7 +99,7 @@ private fun MacroBar(
 }
 
 val ProteinColor = Color(0xFF1E88E5)
-val FatColor = Color(0xFFFDD835)
+val FatColor = Color(0xFFFFB300)
 val CarbsColor = Color(0xFFEF6C00)
 
 private fun Double.formatMacro(): String =

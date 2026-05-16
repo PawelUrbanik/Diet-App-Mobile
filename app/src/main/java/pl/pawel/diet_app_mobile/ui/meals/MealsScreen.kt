@@ -7,13 +7,13 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,15 +25,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -50,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,6 +68,7 @@ import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
+import pl.pawel.diet_app_mobile.ui.components.productCategoryIcon
 import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
 import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
 import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
@@ -105,6 +113,7 @@ fun MealsRoute(
         onEditorDescriptionChange = viewModel::onEditorDescriptionChange,
         onAddIngredientClick = viewModel::openAddIngredient,
         onEditIngredientClick = viewModel::openEditIngredient,
+        onRemoveIngredient = viewModel::removeIngredientFromDraft,
         onCloseIngredientEditor = viewModel::closeIngredientEditor,
         onProductQueryChange = viewModel::onProductQueryChange,
         onProductClick = viewModel::selectIngredientProduct,
@@ -142,6 +151,7 @@ private fun MealsScreen(
     onEditorDescriptionChange: (String) -> Unit,
     onAddIngredientClick: () -> Unit,
     onEditIngredientClick: (Int) -> Unit,
+    onRemoveIngredient: (Int) -> Unit,
     onCloseIngredientEditor: () -> Unit,
     onProductQueryChange: (String) -> Unit,
     onProductClick: (Product) -> Unit,
@@ -191,7 +201,12 @@ private fun MealsScreen(
                 title = { Text(title) },
                 navigationIcon = {
                     if (onBack != null) {
-                        TextButton(onClick = onBack) { Text("Wróć") }
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Wróć",
+                            )
+                        }
                     }
                 },
             )
@@ -224,7 +239,6 @@ private fun MealsScreen(
                         onQuantityGramsChange = onQuantityGramsChange,
                         onSaveIngredient = onSaveIngredient,
                         onDeleteIngredient = onDeleteIngredient,
-                        onCancel = onCloseIngredientEditor,
                     )
                 MealsNavTarget.EditMeal ->
                     MealEditorContent(
@@ -234,8 +248,8 @@ private fun MealsScreen(
                         onDescriptionChange = onEditorDescriptionChange,
                         onAddIngredientClick = onAddIngredientClick,
                         onEditIngredientClick = onEditIngredientClick,
+                        onRemoveIngredient = onRemoveIngredient,
                         onSaveMeal = onSaveMeal,
-                        onBackToList = onBackToList,
                     )
                 MealsNavTarget.AddMeal ->
                     MealCreatorContent(
@@ -244,7 +258,6 @@ private fun MealsScreen(
                         onCategoryChange = onCategoryChange,
                         onDescriptionChange = onDescriptionChange,
                         onAddMeal = onAddMeal,
-                        onCancel = onCloseAddMeal,
                     )
                 MealsNavTarget.List ->
                     MealsListContent(
@@ -344,7 +357,6 @@ private fun MealCreatorContent(
     onCategoryChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onAddMeal: () -> Unit,
-    onCancel: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -385,15 +397,6 @@ private fun MealCreatorContent(
                 Text(if (formState.isSaving) "Zapisywanie..." else "Dodaj posiłek")
             }
         }
-        item {
-            TextButton(
-                onClick = onCancel,
-                enabled = !formState.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Anuluj")
-            }
-        }
     }
 }
 
@@ -405,8 +408,8 @@ private fun MealEditorContent(
     onDescriptionChange: (String) -> Unit,
     onAddIngredientClick: () -> Unit,
     onEditIngredientClick: (Int) -> Unit,
+    onRemoveIngredient: (Int) -> Unit,
     onSaveMeal: () -> Unit,
-    onBackToList: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -425,15 +428,19 @@ private fun MealEditorContent(
             IngredientsCard(
                 ingredients = editorState.ingredients,
                 onEditIngredient = onEditIngredientClick,
+                onRemoveIngredient = onRemoveIngredient,
                 onAddIngredientClick = onAddIngredientClick,
             )
         }
+        editorState.errorMessage?.let { item { ErrorText(it) } }
         item {
-            EditorActions(
-                editorState = editorState,
-                onSaveMeal = onSaveMeal,
-                onBackToList = onBackToList,
-            )
+            Button(
+                onClick = onSaveMeal,
+                enabled = !editorState.isSaving,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (editorState.isSaving) "Zapisywanie..." else "Zapisz zmiany")
+            }
         }
     }
 }
@@ -447,7 +454,6 @@ private fun IngredientEditorContent(
     onQuantityGramsChange: (String) -> Unit,
     onSaveIngredient: () -> Unit,
     onDeleteIngredient: () -> Unit,
-    onCancel: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -492,11 +498,6 @@ private fun IngredientEditorContent(
                 }
             }
         }
-        item {
-            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
-                Text("Anuluj")
-            }
-        }
     }
 }
 
@@ -531,7 +532,6 @@ private fun MealEditCard(
                 minLines = 2,
             )
             NutritionMacroBars(nutrition = editorState.nutrition)
-            editorState.errorMessage?.let { ErrorText(it) }
         }
     }
 }
@@ -611,12 +611,20 @@ private fun MealListCard(meal: Meal, onEditClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                NutritionMacroBars(nutrition = meal.nutrition)
-                Text(
-                    text = "Składniki: ${meal.ingredients.size}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (meal.ingredients.isEmpty()) {
+                    Text(
+                        text = "Brak składników",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    NutritionMacroBars(nutrition = meal.nutrition)
+                    Text(
+                        text = "Składniki: ${meal.ingredients.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -626,29 +634,89 @@ private fun MealListCard(meal: Meal, onEditClick: () -> Unit) {
 private fun IngredientsCard(
     ingredients: List<MealIngredient>,
     onEditIngredient: (Int) -> Unit,
+    onRemoveIngredient: (Int) -> Unit,
     onAddIngredientClick: () -> Unit,
 ) {
     Card {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Składniki", style = MaterialTheme.typography.titleMedium)
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Składniki", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = onAddIngredientClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(" Dodaj")
+                }
+            }
             if (ingredients.isEmpty()) {
                 Text(
                     text = "Ten posiłek nie ma jeszcze składników.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             } else {
+                HorizontalDivider()
                 ingredients.forEachIndexed { index, ingredient ->
-                    IngredientRow(ingredient = ingredient, onEditClick = { onEditIngredient(index) })
+                    SwipeToDeleteContainer(onDeleteRequest = { onRemoveIngredient(index) }) {
+                        IngredientRow(
+                            ingredient = ingredient,
+                            onEditClick = { onEditIngredient(index) },
+                        )
+                    }
+                    if (index < ingredients.lastIndex) HorizontalDivider()
                 }
             }
-            Button(onClick = onAddIngredientClick, modifier = Modifier.fillMaxWidth()) {
-                Text("Dodaj składnik")
-            }
         }
+    }
+}
+
+@Composable
+private fun IngredientRow(ingredient: MealIngredient, onEditClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onEditClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = ingredient.product.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "${ingredient.quantityGrams.format()} g",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            NutritionMacroBars(nutrition = ingredient.nutrition)
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = "Edytuj składnik",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -666,51 +734,51 @@ private fun ProductResults(
         )
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        products.forEach { product ->
-            FilterChip(
-                selected = selectedProductId == product.id,
-                onClick = { onProductClick(product) },
-                label = { Text("${product.name} (${product.caloriesPer100g.format()} kcal / 100 g)") },
+    Card {
+        products.forEachIndexed { index, product ->
+            val isSelected = selectedProductId == product.id
+            ListItem(
+                headlineContent = {
+                    Text(product.name, style = MaterialTheme.typography.bodyMedium)
+                },
+                supportingContent = {
+                    Text(
+                        text = "${product.caloriesPer100g.format()} kcal / 100 g",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = productCategoryIcon(product.category),
+                        contentDescription = null,
+                        tint = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                },
+                trailingContent = if (isSelected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Wybrany",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else {
+                    null
+                },
+                colors = ListItemDefaults.colors(
+                    containerColor = if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                ),
+                modifier = Modifier.clickable { onProductClick(product) },
             )
-        }
-    }
-}
-
-@Composable
-private fun IngredientRow(ingredient: MealIngredient, onEditClick: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = "${ingredient.product.name} — ${ingredient.quantityGrams.format()} g",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        NutritionMacroBars(nutrition = ingredient.nutrition)
-        OutlinedButton(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Edytuj składnik")
-        }
-    }
-}
-
-@Composable
-private fun EditorActions(
-    editorState: MealEditorState,
-    onSaveMeal: () -> Unit,
-    onBackToList: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(
-            onClick = onSaveMeal,
-            enabled = !editorState.isSaving,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (editorState.isSaving) "Zapisywanie..." else "Zapisz zmiany")
-        }
-        OutlinedButton(
-            onClick = onBackToList,
-            enabled = !editorState.isSaving,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Wróć do listy")
+            if (index < products.lastIndex) HorizontalDivider()
         }
     }
 }
