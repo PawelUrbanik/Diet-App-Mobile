@@ -1,26 +1,33 @@
 package pl.pawel.diet_app_mobile.ui.products
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocalGroceryStore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,15 +38,22 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import pl.pawel.diet_app_mobile.domain.model.NutritionSummary
 import pl.pawel.diet_app_mobile.domain.model.Product
+import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
+import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
+import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
+import pl.pawel.diet_app_mobile.ui.components.productCategoryIcon
+
+private enum class ProductsNavTarget(val depth: Int) {
+    List(0), Editor(1)
+}
 
 @Composable
 fun ProductsRoute(
@@ -48,11 +62,13 @@ fun ProductsRoute(
     val products by viewModel.products.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
     val query by viewModel.query.collectAsState()
+    val productPendingDelete by viewModel.productPendingDelete.collectAsState()
 
     ProductsScreen(
         products = products,
         query = query,
         editorState = editorState,
+        productPendingDelete = productPendingDelete,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onOpenAddProduct = viewModel::openAddProduct,
         onProductClick = viewModel::openEditProduct,
@@ -64,7 +80,9 @@ fun ProductsRoute(
         onCarbsChange = viewModel::onCarbsChange,
         onSaveProduct = viewModel::saveProduct,
         onDeleteProductFromEditor = viewModel::deleteProductFromEditor,
-        onDeleteProduct = viewModel::deleteProduct,
+        onRequestDeleteProduct = viewModel::requestDeleteProduct,
+        onConfirmDeleteProduct = viewModel::confirmDeleteProduct,
+        onCancelDeleteProduct = viewModel::cancelDeleteProduct,
     )
 }
 
@@ -74,6 +92,7 @@ private fun ProductsScreen(
     products: List<Product>,
     query: String,
     editorState: ProductFormState?,
+    productPendingDelete: Product?,
     onSearchQueryChange: (String) -> Unit,
     onOpenAddProduct: () -> Unit,
     onProductClick: (Product) -> Unit,
@@ -85,20 +104,21 @@ private fun ProductsScreen(
     onCarbsChange: (String) -> Unit,
     onSaveProduct: () -> Unit,
     onDeleteProductFromEditor: () -> Unit,
-    onDeleteProduct: (Product) -> Unit,
+    onRequestDeleteProduct: (Product) -> Unit,
+    onConfirmDeleteProduct: () -> Unit,
+    onCancelDeleteProduct: () -> Unit,
 ) {
-    var productPendingDelete by remember { mutableStateOf<Product?>(null) }
-
     productPendingDelete?.let { product ->
-        DeleteProductDialog(
-            product = product,
-            onDismiss = { productPendingDelete = null },
-            onConfirm = {
-                onDeleteProduct(product)
-                productPendingDelete = null
-            },
+        AlertDialog(
+            onDismissRequest = onCancelDeleteProduct,
+            title = { Text("Usunąć produkt?") },
+            text = { Text("Produkt \"${product.name}\" zostanie usunięty z bazy produktów.") },
+            confirmButton = { TextButton(onClick = onConfirmDeleteProduct) { Text("Usuń") } },
+            dismissButton = { TextButton(onClick = onCancelDeleteProduct) { Text("Anuluj") } },
         )
     }
+
+    val navTarget = if (editorState != null) ProductsNavTarget.Editor else ProductsNavTarget.List
 
     val title = when {
         editorState != null && editorState.isEditing -> "Edycja produktu"
@@ -127,29 +147,39 @@ private fun ProductsScreen(
             }
         },
     ) { innerPadding ->
-        if (editorState != null) {
-            ProductEditorContent(
-                formState = editorState,
-                modifier = Modifier.padding(innerPadding),
-                onNameChange = onNameChange,
-                onCaloriesChange = onCaloriesChange,
-                onProteinChange = onProteinChange,
-                onFatChange = onFatChange,
-                onCarbsChange = onCarbsChange,
-                onSaveProduct = onSaveProduct,
-                onDeleteProduct = onDeleteProductFromEditor,
-                onCancel = onCloseEditor,
-            )
-        } else {
-            ProductsListContent(
-                products = products,
-                query = query,
-                modifier = Modifier.padding(innerPadding),
-                onSearchQueryChange = onSearchQueryChange,
-                onOpenAddProduct = onOpenAddProduct,
-                onProductClick = onProductClick,
-                onProductDeleteClick = { productPendingDelete = it },
-            )
+        AnimatedContent(
+            targetState = navTarget,
+            transitionSpec = {
+                val forward = targetState.depth >= initialState.depth
+                (slideInHorizontally { if (forward) it else -it } + fadeIn()) togetherWith
+                    (slideOutHorizontally { if (forward) -it else it } + fadeOut())
+            },
+            label = "products_nav",
+            modifier = Modifier.padding(innerPadding),
+        ) { target ->
+            when (target) {
+                ProductsNavTarget.Editor ->
+                    ProductEditorContent(
+                        formState = editorState ?: return@AnimatedContent,
+                        onNameChange = onNameChange,
+                        onCaloriesChange = onCaloriesChange,
+                        onProteinChange = onProteinChange,
+                        onFatChange = onFatChange,
+                        onCarbsChange = onCarbsChange,
+                        onSaveProduct = onSaveProduct,
+                        onDeleteProduct = onDeleteProductFromEditor,
+                        onCancel = onCloseEditor,
+                    )
+                ProductsNavTarget.List ->
+                    ProductsListContent(
+                        products = products,
+                        query = query,
+                        onSearchQueryChange = onSearchQueryChange,
+                        onOpenAddProduct = onOpenAddProduct,
+                        onProductClick = onProductClick,
+                        onRequestDeleteProduct = onRequestDeleteProduct,
+                    )
+            }
         }
     }
 }
@@ -158,49 +188,82 @@ private fun ProductsScreen(
 private fun ProductsListContent(
     products: List<Product>,
     query: String,
-    modifier: Modifier = Modifier,
     onSearchQueryChange: (String) -> Unit,
     onOpenAddProduct: () -> Unit,
     onProductClick: (Product) -> Unit,
-    onProductDeleteClick: (Product) -> Unit,
+    onRequestDeleteProduct: (Product) -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 88.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                text = "Baza produktów",
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-
-        item {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onSearchQueryChange,
+            AppSearchBar(
+                query = query,
+                onQueryChange = onSearchQueryChange,
+                placeholder = "Szukaj produktu",
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Szukaj produktu") },
-                singleLine = true,
             )
         }
 
         if (products.isEmpty()) {
             item {
-                EmptyProductsCard(hasActiveQuery = query.isNotBlank())
+                EmptyProductsState(
+                    hasActiveQuery = query.isNotBlank(),
+                    onAddClick = onOpenAddProduct,
+                )
             }
         } else {
             items(
                 items = products,
                 key = { product -> product.id },
             ) { product ->
-                ProductCard(
-                    product = product,
-                    onClick = { onProductClick(product) },
-                    onDeleteClick = { onProductDeleteClick(product) },
-                )
+                SwipeToDeleteContainer(onDeleteRequest = { onRequestDeleteProduct(product) }) {
+                    ProductCard(
+                        product = product,
+                        onClick = { onProductClick(product) },
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptyProductsState(
+    hasActiveQuery: Boolean,
+    onAddClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.LocalGroceryStore,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+        )
+        Text(
+            text = if (hasActiveQuery) "Brak wyników" else "Brak produktów",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = if (hasActiveQuery) {
+                "Żaden produkt nie pasuje do wyszukiwanej frazy."
+            } else {
+                "Dodaj produkty, aby budować posiłki i śledzić wartości odżywcze."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        if (!hasActiveQuery) {
+            Button(onClick = onAddClick) { Text("Dodaj produkt") }
         }
     }
 }
@@ -208,7 +271,6 @@ private fun ProductsListContent(
 @Composable
 private fun ProductEditorContent(
     formState: ProductFormState,
-    modifier: Modifier = Modifier,
     onNameChange: (String) -> Unit,
     onCaloriesChange: (String) -> Unit,
     onProteinChange: (String) -> Unit,
@@ -219,7 +281,7 @@ private fun ProductEditorContent(
     onCancel: () -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -353,106 +415,41 @@ private fun DecimalTextField(
 }
 
 @Composable
-private fun EmptyProductsCard(hasActiveQuery: Boolean) {
-    Card {
-        Text(
-            text = if (hasActiveQuery) {
-                "Brak produktów pasujących do wyszukiwania."
-            } else {
-                "Brak produktów. Dodaj pierwszy produkt, żeby później budować posiłki i liczyć makroskładniki."
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
 private fun ProductCard(
     product: Product,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Text(
-                text = product.name,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = product.category,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "${product.caloriesPer100g.format()} kcal / 100 g",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "B: ${product.proteinPer100g.format()} g | T: ${product.fatPer100g.format()} g | W: ${product.carbsPer100g.format()} g",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Edytuj")
-                }
-                OutlinedButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Usuń")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeleteProductDialog(
-    product: Product,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Usunąć produkt?") },
-        text = {
-            Text(
-                text = "Produkt \"${product.name}\" zostanie usunięty z bazy produktów.",
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Usuń")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Anuluj")
-            }
-        },
+    val nutrition = NutritionSummary(
+        calories = product.caloriesPer100g,
+        protein = product.proteinPer100g,
+        fat = product.fatPer100g,
+        carbs = product.carbsPer100g,
     )
-}
-
-private fun Double.format(): String =
-    if (this % 1.0 == 0.0) {
-        toInt().toString()
-    } else {
-        "%.1f".format(this)
+    Card(onClick = onClick) {
+        ListItem(
+            headlineContent = {
+                Text(product.name, style = MaterialTheme.typography.titleMedium)
+            },
+            supportingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "${product.category} · na 100 g",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NutritionMacroBars(nutrition = nutrition)
+                }
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = productCategoryIcon(product.category),
+                    contentDescription = product.category,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        )
     }
+}

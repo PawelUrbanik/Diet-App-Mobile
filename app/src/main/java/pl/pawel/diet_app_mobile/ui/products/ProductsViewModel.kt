@@ -45,6 +45,9 @@ class ProductsViewModel @Inject constructor(
     private val _editorState = MutableStateFlow<ProductFormState?>(null)
     val editorState: StateFlow<ProductFormState?> = _editorState.asStateFlow()
 
+    private val _productPendingDelete = MutableStateFlow<Product?>(null)
+    val productPendingDelete: StateFlow<Product?> = _productPendingDelete.asStateFlow()
+
     init {
         viewModelScope.launch {
             productSeeder.seedMissingProducts()
@@ -84,6 +87,22 @@ class ProductsViewModel @Inject constructor(
         _editorState.value = null
     }
 
+    fun requestDeleteProduct(product: Product) {
+        _productPendingDelete.value = product
+    }
+
+    fun cancelDeleteProduct() {
+        _productPendingDelete.value = null
+    }
+
+    fun confirmDeleteProduct() {
+        val product = _productPendingDelete.value ?: return
+        _productPendingDelete.value = null
+        viewModelScope.launch {
+            runCatching { productRepository.deleteProduct(product.id) }
+        }
+    }
+
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
             runCatching { productRepository.deleteProduct(product.id) }
@@ -93,7 +112,6 @@ class ProductsViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    // Brak otwartego edytora — błąd usuwania zgłosimy następnym razem.
                     updateForm {
                         copy(errorMessage = "Nie udało się usunąć produktu. Może być używany w posiłku.")
                     }

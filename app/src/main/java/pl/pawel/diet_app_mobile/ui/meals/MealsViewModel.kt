@@ -62,6 +62,9 @@ class MealsViewModel @Inject constructor(
     private val _editorState = MutableStateFlow<MealEditorState?>(null)
     val editorState: StateFlow<MealEditorState?> = _editorState.asStateFlow()
 
+    private val _mealPendingDelete = MutableStateFlow<Meal?>(null)
+    val mealPendingDelete: StateFlow<Meal?> = _mealPendingDelete.asStateFlow()
+
     private val _ingredientEditorState = MutableStateFlow<IngredientEditorState?>(null)
     val ingredientEditorState: StateFlow<IngredientEditorState?> = _ingredientEditorState.asStateFlow()
 
@@ -129,6 +132,22 @@ class MealsViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    fun requestDeleteMeal(meal: Meal) {
+        _mealPendingDelete.value = meal
+    }
+
+    fun cancelDeleteMeal() {
+        _mealPendingDelete.value = null
+    }
+
+    fun confirmDeleteMeal() {
+        val meal = _mealPendingDelete.value ?: return
+        _mealPendingDelete.value = null
+        viewModelScope.launch {
+            runCatching { mealRepository.deleteMeal(meal.id) }
         }
     }
 
