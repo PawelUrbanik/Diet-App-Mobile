@@ -56,8 +56,8 @@ class PlanViewModel @Inject constructor(
     private val _servingsDialog = MutableStateFlow<ServingsDialogState?>(null)
     val servingsDialog: StateFlow<ServingsDialogState?> = _servingsDialog.asStateFlow()
 
-    private val _editSheet = MutableStateFlow<EditPlannedMealSheetState?>(null)
-    val editSheet: StateFlow<EditPlannedMealSheetState?> = _editSheet.asStateFlow()
+    private val _editDialog = MutableStateFlow<EditServingsDialogState?>(null)
+    val editDialog: StateFlow<EditServingsDialogState?> = _editDialog.asStateFlow()
 
     val availableMeals: StateFlow<List<Meal>> = combine(allMeals, _addSheet) { meals, sheet ->
         if (sheet == null) return@combine emptyList()
@@ -148,38 +148,37 @@ class PlanViewModel @Inject constructor(
         }
     }
 
-    fun openEditSheet(plannedMeal: PlannedMeal) {
-        _editSheet.value = EditPlannedMealSheetState(
+    fun openEditDialog(plannedMeal: PlannedMeal) {
+        _editDialog.value = EditServingsDialogState(
             plannedMealId = plannedMeal.id,
-            mealName = plannedMeal.meal.name,
-            servings = plannedMeal.servings.toPlainString(),
+            meal = plannedMeal.meal,
+            servings = plannedMeal.servings,
         )
     }
 
-    fun closeEditSheet() {
-        _editSheet.value = null
+    fun closeEditDialog() {
+        _editDialog.value = null
     }
 
-    fun onEditServingsChange(value: String) {
-        _editSheet.update { it?.copy(servings = value, errorMessage = null) }
+    fun onEditServingsChange(value: Double) {
+        _editDialog.update { it?.copy(servings = value, errorMessage = null) }
     }
 
     fun confirmEdit() {
-        val sheet = _editSheet.value ?: return
-        val servings = sheet.servings.replace(',', '.').toDoubleOrNull()
+        val dialog = _editDialog.value ?: return
 
-        if (servings == null || servings <= 0.0) {
-            _editSheet.update { it?.copy(errorMessage = "Podaj poprawną liczbę porcji.") }
+        if (dialog.servings <= 0.0) {
+            _editDialog.update { it?.copy(errorMessage = "Wybierz liczbę porcji.") }
             return
         }
 
         viewModelScope.launch {
             runCatching {
-                mealPlanRepository.updatePlannedMealServings(sheet.plannedMealId, servings)
+                mealPlanRepository.updatePlannedMealServings(dialog.plannedMealId, dialog.servings)
             }
-                .onSuccess { _editSheet.value = null }
+                .onSuccess { _editDialog.value = null }
                 .onFailure {
-                    _editSheet.update {
+                    _editDialog.update {
                         it?.copy(errorMessage = "Nie udało się zapisać zmian.")
                     }
                 }
@@ -193,9 +192,9 @@ class PlanViewModel @Inject constructor(
     }
 
     fun removePlannedMealFromEdit() {
-        val sheet = _editSheet.value ?: return
-        _editSheet.value = null
-        removePlannedMeal(sheet.plannedMealId)
+        val dialog = _editDialog.value ?: return
+        _editDialog.value = null
+        removePlannedMeal(dialog.plannedMealId)
     }
 }
 
@@ -213,10 +212,10 @@ data class ServingsDialogState(
     val errorMessage: String? = null,
 )
 
-data class EditPlannedMealSheetState(
+data class EditServingsDialogState(
     val plannedMealId: Long,
-    val mealName: String,
-    val servings: String,
+    val meal: Meal,
+    val servings: Double,
     val errorMessage: String? = null,
 )
 
@@ -229,8 +228,5 @@ private fun emptyPlan(weekStart: LocalDate): MealPlan = MealPlan(
 )
 
 internal fun LocalDate.mondayOfWeek(): LocalDate = with(DayOfWeek.MONDAY)
-
-private fun Double.toPlainString(): String =
-    if (this % 1.0 == 0.0) toLong().toString() else toString()
 
 internal val PLAN_CATEGORIES: List<String> = MEAL_CATEGORIES
