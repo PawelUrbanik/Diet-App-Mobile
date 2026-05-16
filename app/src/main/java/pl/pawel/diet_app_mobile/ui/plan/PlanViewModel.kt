@@ -53,6 +53,9 @@ class PlanViewModel @Inject constructor(
     private val _addSheet = MutableStateFlow<AddMealSheetState?>(null)
     val addSheet: StateFlow<AddMealSheetState?> = _addSheet.asStateFlow()
 
+    private val _servingsDialog = MutableStateFlow<ServingsDialogState?>(null)
+    val servingsDialog: StateFlow<ServingsDialogState?> = _servingsDialog.asStateFlow()
+
     private val _editSheet = MutableStateFlow<EditPlannedMealSheetState?>(null)
     val editSheet: StateFlow<EditPlannedMealSheetState?> = _editSheet.asStateFlow()
 
@@ -98,21 +101,29 @@ class PlanViewModel @Inject constructor(
         _addSheet.update { it?.copy(mealType = value) }
     }
 
-    fun onAddServingsChange(value: String) {
-        _addSheet.update { it?.copy(servings = value, errorMessage = null) }
+    fun onSelectMeal(meal: Meal) {
+        val sheet = _addSheet.value ?: return
+        _servingsDialog.value = ServingsDialogState(
+            date = sheet.date,
+            mealType = sheet.mealType,
+            meal = meal,
+        )
     }
 
-    fun onSelectMeal(meal: Meal) {
-        _addSheet.update { it?.copy(selectedMealId = meal.id, errorMessage = null) }
+    fun closeServingsDialog() {
+        _servingsDialog.value = null
+    }
+
+    fun onDialogServingsChange(value: String) {
+        _servingsDialog.update { it?.copy(servings = value, errorMessage = null) }
     }
 
     fun confirmAdd() {
-        val sheet = _addSheet.value ?: return
-        val mealId = sheet.selectedMealId
-        val servings = sheet.servings.replace(',', '.').toDoubleOrNull()
+        val dialog = _servingsDialog.value ?: return
+        val servings = dialog.servings.replace(',', '.').toDoubleOrNull()
 
-        if (mealId == null || servings == null || servings <= 0.0) {
-            _addSheet.update { it?.copy(errorMessage = "Wybierz posiłek i podaj liczbę porcji.") }
+        if (servings == null || servings <= 0.0) {
+            _servingsDialog.update { it?.copy(errorMessage = "Podaj poprawną liczbę porcji.") }
             return
         }
 
@@ -120,15 +131,18 @@ class PlanViewModel @Inject constructor(
             runCatching {
                 mealPlanRepository.addPlannedMeal(
                     weekStartDate = _weekStartDate.value,
-                    mealId = mealId,
-                    date = sheet.date,
-                    mealType = sheet.mealType,
+                    mealId = dialog.meal.id,
+                    date = dialog.date,
+                    mealType = dialog.mealType,
                     servings = servings,
                 )
             }
-                .onSuccess { _addSheet.value = null }
+                .onSuccess {
+                    _servingsDialog.value = null
+                    _addSheet.value = null
+                }
                 .onFailure {
-                    _addSheet.update {
+                    _servingsDialog.update {
                         it?.copy(errorMessage = "Nie udało się zaplanować posiłku.")
                     }
                 }
@@ -190,7 +204,12 @@ data class AddMealSheetState(
     val date: LocalDate,
     val mealType: String,
     val query: String = "",
-    val selectedMealId: Long? = null,
+)
+
+data class ServingsDialogState(
+    val date: LocalDate,
+    val mealType: String,
+    val meal: Meal,
     val servings: String = "1",
     val errorMessage: String? = null,
 )

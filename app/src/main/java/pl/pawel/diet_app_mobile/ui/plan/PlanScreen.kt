@@ -96,6 +96,7 @@ fun PlanRoute(
     val plan by viewModel.plan.collectAsState()
     val weekStartDate by viewModel.weekStartDate.collectAsState()
     val addSheet by viewModel.addSheet.collectAsState()
+    val servingsDialog by viewModel.servingsDialog.collectAsState()
     val editSheet by viewModel.editSheet.collectAsState()
     val availableMeals by viewModel.availableMeals.collectAsState()
 
@@ -103,6 +104,7 @@ fun PlanRoute(
         plan = plan,
         weekStartDate = weekStartDate,
         addSheet = addSheet,
+        servingsDialog = servingsDialog,
         editSheet = editSheet,
         availableMeals = availableMeals,
         onPreviousWeek = viewModel::goToPreviousWeek,
@@ -112,8 +114,9 @@ fun PlanRoute(
         onCloseAddSheet = viewModel::closeAddSheet,
         onAddQueryChange = viewModel::onAddQueryChange,
         onAddMealTypeChange = viewModel::onAddMealTypeChange,
-        onAddServingsChange = viewModel::onAddServingsChange,
         onSelectMeal = viewModel::onSelectMeal,
+        onCloseServingsDialog = viewModel::closeServingsDialog,
+        onDialogServingsChange = viewModel::onDialogServingsChange,
         onConfirmAdd = viewModel::confirmAdd,
         onOpenEditSheet = viewModel::openEditSheet,
         onCloseEditSheet = viewModel::closeEditSheet,
@@ -130,6 +133,7 @@ private fun PlanScreen(
     plan: MealPlan,
     weekStartDate: LocalDate,
     addSheet: AddMealSheetState?,
+    servingsDialog: ServingsDialogState?,
     editSheet: EditPlannedMealSheetState?,
     availableMeals: List<Meal>,
     onPreviousWeek: () -> Unit,
@@ -139,8 +143,9 @@ private fun PlanScreen(
     onCloseAddSheet: () -> Unit,
     onAddQueryChange: (String) -> Unit,
     onAddMealTypeChange: (String) -> Unit,
-    onAddServingsChange: (String) -> Unit,
     onSelectMeal: (Meal) -> Unit,
+    onCloseServingsDialog: () -> Unit,
+    onDialogServingsChange: (String) -> Unit,
     onConfirmAdd: () -> Unit,
     onOpenEditSheet: (PlannedMeal) -> Unit,
     onCloseEditSheet: () -> Unit,
@@ -222,8 +227,15 @@ private fun PlanScreen(
             onDismiss = onCloseAddSheet,
             onQueryChange = onAddQueryChange,
             onMealTypeChange = onAddMealTypeChange,
-            onServingsChange = onAddServingsChange,
             onSelectMeal = onSelectMeal,
+        )
+    }
+
+    if (servingsDialog != null) {
+        ServingsDialog(
+            state = servingsDialog,
+            onDismiss = onCloseServingsDialog,
+            onServingsChange = onDialogServingsChange,
             onConfirm = onConfirmAdd,
         )
     }
@@ -486,9 +498,7 @@ private fun AddMealBottomSheet(
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
     onMealTypeChange: (String) -> Unit,
-    onServingsChange: (String) -> Unit,
     onSelectMeal: (Meal) -> Unit,
-    onConfirm: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -525,29 +535,54 @@ private fun AddMealBottomSheet(
             )
             MealPicker(
                 meals = availableMeals,
-                selectedMealId = state.selectedMealId,
                 onSelect = onSelectMeal,
             )
-            OutlinedTextField(
-                value = state.servings,
-                onValueChange = onServingsChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Porcje") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            )
-            state.errorMessage?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) {
-                Text("Dodaj do planu")
-            }
         }
     }
+}
+
+@Composable
+private fun ServingsDialog(
+    state: ServingsDialogState,
+    onDismiss: () -> Unit,
+    onServingsChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(state.meal.name) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Wartości na 1 porcję",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                NutritionMacroBars(nutrition = state.meal.nutrition)
+                OutlinedTextField(
+                    value = state.servings,
+                    onValueChange = onServingsChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Liczba porcji") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                state.errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Dodaj") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -584,7 +619,6 @@ private fun MealTypeSelector(
 @Composable
 private fun MealPicker(
     meals: List<Meal>,
-    selectedMealId: Long?,
     onSelect: (Meal) -> Unit,
 ) {
     if (meals.isEmpty()) {
@@ -596,9 +630,9 @@ private fun MealPicker(
         )
         return
     }
+    val visibleMeals = meals.take(8)
     Card {
-        meals.take(8).forEachIndexed { index, meal ->
-            val isSelected = selectedMealId == meal.id
+        visibleMeals.forEachIndexed { index, meal ->
             ListItem(
                 headlineContent = { Text(meal.name) },
                 supportingContent = {
@@ -611,34 +645,15 @@ private fun MealPicker(
                     Icon(
                         imageVector = mealCategoryIcon(meal.category),
                         contentDescription = null,
-                        tint = if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            mealCategoryColor(meal.category)
-                        },
+                        tint = mealCategoryColor(meal.category),
                     )
                 },
-                trailingContent = if (isSelected) {
-                    {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Wybrany",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                } else {
-                    null
-                },
                 colors = ListItemDefaults.colors(
-                    containerColor = if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 modifier = Modifier.clickable { onSelect(meal) },
             )
-            if (index < meals.take(8).lastIndex) HorizontalDivider()
+            if (index < visibleMeals.lastIndex) HorizontalDivider()
         }
     }
 }
