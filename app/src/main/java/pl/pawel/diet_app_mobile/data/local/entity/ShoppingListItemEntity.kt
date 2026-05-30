@@ -16,18 +16,18 @@ import androidx.room.PrimaryKey
         ),
     ],
     indices = [
-        Index(value = ["weekStartDate"]),
         Index(value = ["productId"]),
     ],
 )
 data class ShoppingListItemEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val weekStartDate: String,
-    val productId: Long,
-    val productName: String,
+    val productId: Long?,
+    val name: String,
+    val category: String,
     val quantityGrams: Double,
     val isChecked: Boolean,
+    val isManual: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
 )

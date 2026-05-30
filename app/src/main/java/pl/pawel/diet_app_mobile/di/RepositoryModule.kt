@@ -7,9 +7,11 @@ import dagger.hilt.components.SingletonComponent
 import pl.pawel.diet_app_mobile.data.repository.RoomMealPlanRepository
 import pl.pawel.diet_app_mobile.data.repository.RoomMealRepository
 import pl.pawel.diet_app_mobile.data.repository.RoomProductRepository
+import pl.pawel.diet_app_mobile.data.repository.RoomShoppingListRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealPlanRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
 import pl.pawel.diet_app_mobile.domain.repository.ProductRepository
+import pl.pawel.diet_app_mobile.domain.repository.ShoppingListRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -28,4 +30,9 @@ abstract class RepositoryModule {
     abstract fun bindMealPlanRepository(
         repository: RoomMealPlanRepository,
     ): MealPlanRepository
+
+    @Binds
+    abstract fun bindShoppingListRepository(
+        repository: RoomShoppingListRepository,
+    ): ShoppingListRepository
 }

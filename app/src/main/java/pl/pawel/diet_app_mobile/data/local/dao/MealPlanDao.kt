@@ -37,6 +37,12 @@ interface MealPlanDao {
     )
     suspend fun getPlannedMealsForSlot(date: String, mealType: String): List<PlannedMealEntity>
 
+    @Query(
+        "SELECT * FROM planned_meals WHERE date >= :startDate AND date <= :endDate " +
+            "ORDER BY date ASC, position ASC",
+    )
+    suspend fun getPlannedMealsBetween(startDate: String, endDate: String): List<PlannedMealEntity>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPlan(plan: MealPlanEntity): Long
 

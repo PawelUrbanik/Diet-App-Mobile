@@ -11,8 +11,10 @@ import javax.inject.Singleton
 import pl.pawel.diet_app_mobile.data.local.dao.MealDao
 import pl.pawel.diet_app_mobile.data.local.dao.MealPlanDao
 import pl.pawel.diet_app_mobile.data.local.dao.ProductDao
+import pl.pawel.diet_app_mobile.data.local.dao.ShoppingListDao
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_1_2
+import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_2_3
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,7 +27,7 @@ object DatabaseModule {
         context,
         DietAppDatabase::class.java,
         "diet_app.db",
-    ).addMigrations(MIGRATION_1_2)
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
 
     @Provides
@@ -36,4 +38,8 @@ object DatabaseModule {
 
     @Provides
     fun provideMealPlanDao(database: DietAppDatabase): MealPlanDao = database.mealPlanDao()
+
+    @Provides
+    fun provideShoppingListDao(database: DietAppDatabase): ShoppingListDao =
+        database.shoppingListDao()
 }

@@ -7,9 +7,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocalGroceryStore
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import pl.pawel.diet_app_mobile.ui.meals.MealsRoute
 import pl.pawel.diet_app_mobile.ui.plan.PlanRoute
 import pl.pawel.diet_app_mobile.ui.products.ProductsRoute
+import pl.pawel.diet_app_mobile.ui.shopping.ShoppingRoute
 
 @Composable
 fun AppRoot() {
@@ -39,6 +42,7 @@ fun AppRoot() {
                 AppTab.Products -> ProductsRoute()
                 AppTab.Meals -> MealsRoute()
                 AppTab.Plan -> PlanRoute()
+                AppTab.Shopping -> ShoppingRoute()
             }
         }
         NavigationBar {
@@ -79,5 +83,10 @@ private enum class AppTab(
         label = "Plan",
         icon = Icons.Outlined.CalendarMonth,
         selectedIcon = Icons.Filled.CalendarMonth,
+    ),
+    Shopping(
+        label = "Zakupy",
+        icon = Icons.Outlined.ShoppingCart,
+        selectedIcon = Icons.Filled.ShoppingCart,
     ),
 }
