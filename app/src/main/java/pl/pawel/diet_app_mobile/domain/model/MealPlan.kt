@@ -6,7 +6,13 @@ data class MealPlan(
     val id: Long = 0,
     val weekStartDate: LocalDate,
     val days: List<DayPlan>,
-)
+) {
+    val nutrition: NutritionSummary
+        get() = days.fold(NutritionSummary()) { acc, day -> acc + day.nutrition }
+
+    val hasPlannedMeals: Boolean
+        get() = days.any { it.plannedMeals.isNotEmpty() }
+}
 
 data class DayPlan(
     val date: LocalDate,

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
 import pl.pawel.diet_app_mobile.domain.repository.ShoppingListRepository
@@ -41,7 +42,13 @@ class ShoppingViewModel @Inject constructor(
     val message: StateFlow<String?> = _message.asStateFlow()
 
     fun openGenerateDialog() {
-        _generateDialog.value = GenerateDialogState(selectedRange = ShoppingRange.CurrentWeek)
+        val today = LocalDate.now()
+        val monday = today.with(DayOfWeek.MONDAY)
+        _generateDialog.value = GenerateDialogState(
+            selectedRange = ShoppingRange.CurrentWeek,
+            customStart = monday,
+            customEnd = monday.plusDays(6),
+        )
     }
 
     fun closeGenerateDialog() {
@@ -52,9 +59,33 @@ class ShoppingViewModel @Inject constructor(
         _generateDialog.value = _generateDialog.value?.copy(selectedRange = range)
     }
 
+    fun onCustomStartChange(date: LocalDate) {
+        _generateDialog.update { state ->
+            if (state == null) return@update null
+            val newEnd = if (state.customEnd.isBefore(date)) date else state.customEnd
+            state.copy(customStart = date, customEnd = newEnd)
+        }
+    }
+
+    fun onCustomEndChange(date: LocalDate) {
+        _generateDialog.update { state ->
+            if (state == null) return@update null
+            val newStart = if (date.isBefore(state.customStart)) date else state.customStart
+            state.copy(customStart = newStart, customEnd = date)
+        }
+    }
+
     fun confirmGenerate() {
         val dialog = _generateDialog.value ?: return
-        val (start, end) = dialog.selectedRange.resolve(LocalDate.now())
+        val (start, end) = if (dialog.selectedRange == ShoppingRange.Custom) {
+            dialog.customStart to dialog.customEnd
+        } else {
+            dialog.selectedRange.resolve(LocalDate.now())
+        }
+        if (end.isBefore(start)) {
+            _message.value = "Data „do\" jest wcześniejsza niż data „od\"."
+            return
+        }
         _generateDialog.value = null
         viewModelScope.launch {
             _isGenerating.value = true
@@ -128,6 +159,8 @@ data class ShoppingGroup(
 
 data class GenerateDialogState(
     val selectedRange: ShoppingRange,
+    val customStart: LocalDate,
+    val customEnd: LocalDate,
 )
 
 data class ManualDialogState(
@@ -140,6 +173,7 @@ enum class ShoppingRange(val label: String) {
     NextWeek("Następny tydzień"),
     Next7Days("Najbliższe 7 dni"),
     Today("Tylko dziś"),
+    Custom("Własny zakres"),
     ;
 
     fun resolve(today: LocalDate): Pair<LocalDate, LocalDate> = when (this) {
@@ -153,6 +187,7 @@ enum class ShoppingRange(val label: String) {
         }
         Next7Days -> today to today.plusDays(6)
         Today -> today to today
+        Custom -> today to today
     }
 }
 

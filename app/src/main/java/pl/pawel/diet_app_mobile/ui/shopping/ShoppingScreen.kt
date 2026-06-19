@@ -1,6 +1,8 @@
 package pl.pawel.diet_app_mobile.ui.shopping
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,8 +32,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -49,7 +55,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
@@ -58,6 +66,8 @@ import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 private val POLISH_LOCALE: Locale = Locale.forLanguageTag("pl")
 private val RANGE_FORMATTER: DateTimeFormatter =
     DateTimeFormatter.ofPattern("d MMM", POLISH_LOCALE)
+private val CUSTOM_DATE_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM yyyy", POLISH_LOCALE)
 
 @Composable
 fun ShoppingRoute(
@@ -79,6 +89,8 @@ fun ShoppingRoute(
         onOpenGenerate = viewModel::openGenerateDialog,
         onCloseGenerate = viewModel::closeGenerateDialog,
         onRangeChange = viewModel::onRangeChange,
+        onCustomStartChange = viewModel::onCustomStartChange,
+        onCustomEndChange = viewModel::onCustomEndChange,
         onConfirmGenerate = viewModel::confirmGenerate,
         onToggleChecked = viewModel::toggleChecked,
         onRemoveItem = viewModel::removeItem,
@@ -103,6 +115,8 @@ private fun ShoppingScreen(
     onOpenGenerate: () -> Unit,
     onCloseGenerate: () -> Unit,
     onRangeChange: (ShoppingRange) -> Unit,
+    onCustomStartChange: (LocalDate) -> Unit,
+    onCustomEndChange: (LocalDate) -> Unit,
     onConfirmGenerate: () -> Unit,
     onToggleChecked: (ShoppingListItem) -> Unit,
     onRemoveItem: (Long) -> Unit,
@@ -212,6 +226,8 @@ private fun ShoppingScreen(
         GenerateDialog(
             state = generateDialog,
             onRangeChange = onRangeChange,
+            onCustomStartChange = onCustomStartChange,
+            onCustomEndChange = onCustomEndChange,
             onConfirm = onConfirmGenerate,
             onDismiss = onCloseGenerate,
         )
@@ -321,25 +337,39 @@ private fun EmptyShoppingState(onGenerate: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GenerateDialog(
     state: GenerateDialogState,
     onRangeChange: (ShoppingRange) -> Unit,
+    onCustomStartChange: (LocalDate) -> Unit,
+    onCustomEndChange: (LocalDate) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val today = remember { LocalDate.now() }
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Generuj z planu") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
                     text = "Wybierz zakres dni:",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 ShoppingRange.entries.forEach { range ->
-                    val (start, end) = range.resolve(today)
+                    val subtitle = if (range == ShoppingRange.Custom) {
+                        formatRange(state.customStart, state.customEnd)
+                    } else {
+                        val (start, end) = range.resolve(today)
+                        formatRange(start, end)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -358,10 +388,30 @@ private fun GenerateDialog(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(range.label, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = formatRange(start, end),
+                                text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                        }
+                    }
+                }
+
+                if (state.selectedRange == ShoppingRange.Custom) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedButton(
+                            onClick = { showStartPicker = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Od: ${state.customStart.format(CUSTOM_DATE_FORMATTER)}")
+                        }
+                        OutlinedButton(
+                            onClick = { showEndPicker = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Do: ${state.customEnd.format(CUSTOM_DATE_FORMATTER)}")
                         }
                     }
                 }
@@ -374,6 +424,46 @@ private fun GenerateDialog(
             TextButton(onClick = onDismiss) { Text("Anuluj") }
         },
     )
+
+    if (showStartPicker) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.customStart.toUtcMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showStartPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { onCustomStartChange(it.utcMillisToLocalDate()) }
+                    showStartPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartPicker = false }) { Text("Anuluj") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+
+    if (showEndPicker) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.customEnd.toUtcMillis(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { showEndPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { onCustomEndChange(it.utcMillisToLocalDate()) }
+                    showEndPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndPicker = false }) { Text("Anuluj") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 }
 
 @Composable
@@ -420,6 +510,12 @@ private fun formatRange(start: LocalDate, end: LocalDate): String =
     } else {
         "${start.format(RANGE_FORMATTER)} – ${end.format(RANGE_FORMATTER)}"
     }
+
+private fun LocalDate.toUtcMillis(): Long =
+    atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun Long.utcMillisToLocalDate(): LocalDate =
+    Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 private fun formatQuantity(grams: Double): String =
     if (grams >= 1000.0) {

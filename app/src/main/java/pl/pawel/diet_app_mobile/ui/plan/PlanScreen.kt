@@ -197,6 +197,9 @@ private fun PlanScreen(
                 onPrevious = onPreviousWeek,
                 onNext = onNextWeek,
             )
+            if (plan.hasPlannedMeals) {
+                WeekTotalsRow(nutrition = plan.nutrition)
+            }
             DayTabsRow(
                 weekStartDate = weekStartDate,
                 today = today,
@@ -282,6 +285,35 @@ private fun WeekNavigator(
         IconButton(onClick = onNext) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Następny tydzień")
         }
+    }
+}
+
+@Composable
+private fun WeekTotalsRow(nutrition: pl.pawel.diet_app_mobile.domain.model.NutritionSummary) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Σ tydzień",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "${nutrition.calories.formatKcal()} kcal",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "B ${nutrition.protein.formatKcal()}g · T ${nutrition.fat.formatKcal()}g · W ${nutrition.carbs.formatKcal()}g",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
