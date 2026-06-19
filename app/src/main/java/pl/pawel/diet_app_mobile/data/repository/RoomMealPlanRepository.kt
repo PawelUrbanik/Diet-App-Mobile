@@ -76,6 +76,10 @@ class RoomMealPlanRepository @Inject constructor(
         mealPlanDao.updateServings(plannedMealId, servings)
     }
 
+    override suspend fun replacePlannedMeal(plannedMealId: Long, newMealId: Long, servings: Double) {
+        mealPlanDao.replacePlannedMeal(plannedMealId, newMealId, servings)
+    }
+
     override suspend fun removePlannedMeal(plannedMealId: Long) {
         mealPlanDao.deletePlannedMealById(plannedMealId)
     }

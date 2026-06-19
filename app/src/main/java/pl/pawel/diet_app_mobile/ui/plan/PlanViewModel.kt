@@ -107,6 +107,8 @@ class PlanViewModel @Inject constructor(
             date = sheet.date,
             mealType = sheet.mealType,
             meal = meal,
+            servings = sheet.swapDefaultServings,
+            swapPlannedMealId = sheet.swapPlannedMealId,
         )
     }
 
@@ -128,13 +130,21 @@ class PlanViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                mealPlanRepository.addPlannedMeal(
-                    weekStartDate = _weekStartDate.value,
-                    mealId = dialog.meal.id,
-                    date = dialog.date,
-                    mealType = dialog.mealType,
-                    servings = dialog.servings,
-                )
+                if (dialog.swapPlannedMealId != null) {
+                    mealPlanRepository.replacePlannedMeal(
+                        plannedMealId = dialog.swapPlannedMealId,
+                        newMealId = dialog.meal.id,
+                        servings = dialog.servings,
+                    )
+                } else {
+                    mealPlanRepository.addPlannedMeal(
+                        weekStartDate = _weekStartDate.value,
+                        mealId = dialog.meal.id,
+                        date = dialog.date,
+                        mealType = dialog.mealType,
+                        servings = dialog.servings,
+                    )
+                }
             }
                 .onSuccess {
                     _servingsDialog.value = null
@@ -148,11 +158,24 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    fun openSwapFromEdit() {
+        val dialog = _editDialog.value ?: return
+        _editDialog.value = null
+        _addSheet.value = AddMealSheetState(
+            date = dialog.date,
+            mealType = dialog.mealType,
+            swapPlannedMealId = dialog.plannedMealId,
+            swapDefaultServings = dialog.servings,
+        )
+    }
+
     fun openEditDialog(plannedMeal: PlannedMeal) {
         _editDialog.value = EditServingsDialogState(
             plannedMealId = plannedMeal.id,
             meal = plannedMeal.meal,
             servings = plannedMeal.servings,
+            date = plannedMeal.date,
+            mealType = plannedMeal.mealType,
         )
     }
 
@@ -217,6 +240,8 @@ data class AddMealSheetState(
     val date: LocalDate,
     val mealType: String,
     val query: String = "",
+    val swapPlannedMealId: Long? = null,
+    val swapDefaultServings: Double = 1.0,
 )
 
 data class ServingsDialogState(
@@ -225,12 +250,15 @@ data class ServingsDialogState(
     val meal: Meal,
     val servings: Double = 1.0,
     val errorMessage: String? = null,
+    val swapPlannedMealId: Long? = null,
 )
 
 data class EditServingsDialogState(
     val plannedMealId: Long,
     val meal: Meal,
     val servings: Double,
+    val date: LocalDate,
+    val mealType: String,
     val errorMessage: String? = null,
 )
 

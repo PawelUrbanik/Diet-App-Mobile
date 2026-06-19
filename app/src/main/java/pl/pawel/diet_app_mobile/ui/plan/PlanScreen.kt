@@ -125,6 +125,7 @@ fun PlanRoute(
         onEditServingsChange = viewModel::onEditServingsChange,
         onConfirmEdit = viewModel::confirmEdit,
         onRemoveFromEdit = viewModel::removePlannedMealFromEdit,
+        onSwapFromEdit = viewModel::openSwapFromEdit,
         onSwipeRemove = viewModel::removePlannedMeal,
         onCopyFromPreviousDay = viewModel::copyFromPreviousDay,
     )
@@ -155,6 +156,7 @@ private fun PlanScreen(
     onEditServingsChange: (Double) -> Unit,
     onConfirmEdit: () -> Unit,
     onRemoveFromEdit: () -> Unit,
+    onSwapFromEdit: () -> Unit,
     onSwipeRemove: (Long) -> Unit,
     onCopyFromPreviousDay: (LocalDate, String) -> Unit,
 ) {
@@ -255,6 +257,7 @@ private fun PlanScreen(
             onServingsChange = onEditServingsChange,
             onConfirm = onConfirmEdit,
             onRemove = onRemoveFromEdit,
+            onSwap = onSwapFromEdit,
         )
     }
 }
@@ -562,7 +565,7 @@ private fun AddMealBottomSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Zaplanuj posiłek",
+                text = if (state.swapPlannedMealId != null) "Zamień posiłek" else "Zaplanuj posiłek",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -572,10 +575,30 @@ private fun AddMealBottomSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            MealTypeSelector(
-                selectedType = state.mealType,
-                onTypeChange = onMealTypeChange,
-            )
+            if (state.swapPlannedMealId == null) {
+                MealTypeSelector(
+                    selectedType = state.mealType,
+                    onTypeChange = onMealTypeChange,
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        imageVector = mealCategoryIcon(state.mealType),
+                        contentDescription = null,
+                        tint = mealCategoryColor(state.mealType),
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = state.mealType,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = mealCategoryColor(state.mealType),
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
             AppSearchBar(
                 query = state.query,
                 onQueryChange = onQueryChange,
@@ -617,6 +640,7 @@ private fun EditServingsDialog(
     onServingsChange: (Double) -> Unit,
     onConfirm: () -> Unit,
     onRemove: () -> Unit,
+    onSwap: () -> Unit,
 ) {
     ServingsPickerDialog(
         meal = state.meal,
@@ -627,6 +651,7 @@ private fun EditServingsDialog(
         onConfirm = onConfirm,
         onDismiss = onDismiss,
         onRemove = onRemove,
+        onSwap = onSwap,
     )
 }
 
@@ -640,6 +665,7 @@ private fun ServingsPickerDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onRemove: (() -> Unit)? = null,
+    onSwap: (() -> Unit)? = null,
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -673,6 +699,14 @@ private fun ServingsPickerDialog(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                }
+                if (onSwap != null) {
+                    TextButton(
+                        onClick = onSwap,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Zamień posiłek")
+                    }
                 }
                 if (onRemove != null) {
                     TextButton(

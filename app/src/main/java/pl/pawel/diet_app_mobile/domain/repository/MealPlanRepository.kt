@@ -17,6 +17,8 @@ interface MealPlanRepository {
 
     suspend fun updatePlannedMealServings(plannedMealId: Long, servings: Double)
 
+    suspend fun replacePlannedMeal(plannedMealId: Long, newMealId: Long, servings: Double)
+
     suspend fun removePlannedMeal(plannedMealId: Long)
 
     /**

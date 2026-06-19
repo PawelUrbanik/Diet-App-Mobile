@@ -52,6 +52,19 @@ interface MealPlanDao {
     @Query("UPDATE planned_meals SET servings = :servings WHERE id = :plannedMealId")
     suspend fun updateServings(plannedMealId: Long, servings: Double)
 
+    @Query("UPDATE planned_meals SET mealId = :newMealId, servings = :servings WHERE id = :plannedMealId")
+    suspend fun updateMealAndServings(plannedMealId: Long, newMealId: Long, servings: Double)
+
+    @Query("SELECT mealPlanId FROM planned_meals WHERE id = :plannedMealId")
+    suspend fun getMealPlanIdFor(plannedMealId: Long): Long?
+
+    @Transaction
+    suspend fun replacePlannedMeal(plannedMealId: Long, newMealId: Long, servings: Double) {
+        updateMealAndServings(plannedMealId, newMealId, servings)
+        val planId = getMealPlanIdFor(plannedMealId) ?: return
+        touchPlan(planId, System.currentTimeMillis())
+    }
+
     @Query("UPDATE meal_plans SET updatedAt = :updatedAt WHERE id = :mealPlanId")
     suspend fun touchPlan(mealPlanId: Long, updatedAt: Long)
 
