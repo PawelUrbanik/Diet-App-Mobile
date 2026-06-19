@@ -116,6 +116,7 @@ fun PlanRoute(
         onCloseAddSheet = viewModel::closeAddSheet,
         onAddQueryChange = viewModel::onAddQueryChange,
         onAddMealTypeChange = viewModel::onAddMealTypeChange,
+        onShowAllCategoriesChange = viewModel::onShowAllCategoriesChange,
         onSelectMeal = viewModel::onSelectMeal,
         onCloseServingsDialog = viewModel::closeServingsDialog,
         onDialogServingsChange = viewModel::onDialogServingsChange,
@@ -147,6 +148,7 @@ private fun PlanScreen(
     onCloseAddSheet: () -> Unit,
     onAddQueryChange: (String) -> Unit,
     onAddMealTypeChange: (String) -> Unit,
+    onShowAllCategoriesChange: (Boolean) -> Unit,
     onSelectMeal: (Meal) -> Unit,
     onCloseServingsDialog: () -> Unit,
     onDialogServingsChange: (Double) -> Unit,
@@ -237,6 +239,7 @@ private fun PlanScreen(
             onDismiss = onCloseAddSheet,
             onQueryChange = onAddQueryChange,
             onMealTypeChange = onAddMealTypeChange,
+            onShowAllCategoriesChange = onShowAllCategoriesChange,
             onSelectMeal = onSelectMeal,
         )
     }
@@ -550,6 +553,7 @@ private fun AddMealBottomSheet(
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
     onMealTypeChange: (String) -> Unit,
+    onShowAllCategoriesChange: (Boolean) -> Unit,
     onSelectMeal: (Meal) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -605,9 +609,35 @@ private fun AddMealBottomSheet(
                 placeholder = "Szukaj posiłku",
                 modifier = Modifier.fillMaxWidth(),
             )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = !state.showAllCategories,
+                    onClick = { onShowAllCategoriesChange(false) },
+                    label = { Text("Tylko: ${state.mealType}") },
+                    leadingIcon = if (!state.showAllCategories) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                )
+                FilterChip(
+                    selected = state.showAllCategories,
+                    onClick = { onShowAllCategoriesChange(true) },
+                    label = { Text("Wszystkie") },
+                    leadingIcon = if (state.showAllCategories) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                )
+            }
             MealPicker(
                 meals = availableMeals,
                 onSelect = onSelectMeal,
+                emptyHint = if (state.showAllCategories) {
+                    "Brak posiłków. Dodaj posiłek w zakładce \"Posiłki\"."
+                } else {
+                    "Brak posiłków w kategorii \"${state.mealType}\". Wybierz \"Wszystkie\" lub dodaj posiłek."
+                },
             )
         }
     }
@@ -762,10 +792,11 @@ private fun MealTypeSelector(
 private fun MealPicker(
     meals: List<Meal>,
     onSelect: (Meal) -> Unit,
+    emptyHint: String = "Brak posiłków. Dodaj posiłek w zakładce \"Posiłki\".",
 ) {
     if (meals.isEmpty()) {
         Text(
-            text = "Brak posiłków. Dodaj posiłek w zakładce \"Posiłki\".",
+            text = emptyHint,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 8.dp),

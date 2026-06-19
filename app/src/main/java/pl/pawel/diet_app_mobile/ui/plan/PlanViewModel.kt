@@ -62,10 +62,15 @@ class PlanViewModel @Inject constructor(
     val availableMeals: StateFlow<List<Meal>> = combine(allMeals, _addSheet) { meals, sheet ->
         if (sheet == null) return@combine emptyList()
         val query = sheet.query.trim()
-        if (query.isBlank()) {
+        val byCategory = if (sheet.showAllCategories) {
             meals
         } else {
-            meals.filter { it.name.contains(query, ignoreCase = true) }
+            meals.filter { it.category.equals(sheet.mealType, ignoreCase = true) }
+        }
+        if (query.isBlank()) {
+            byCategory
+        } else {
+            byCategory.filter { it.name.contains(query, ignoreCase = true) }
         }
     }.stateIn(
         scope = viewModelScope,
@@ -99,6 +104,10 @@ class PlanViewModel @Inject constructor(
 
     fun onAddMealTypeChange(value: String) {
         _addSheet.update { it?.copy(mealType = value) }
+    }
+
+    fun onShowAllCategoriesChange(value: Boolean) {
+        _addSheet.update { it?.copy(showAllCategories = value) }
     }
 
     fun onSelectMeal(meal: Meal) {
@@ -240,6 +249,7 @@ data class AddMealSheetState(
     val date: LocalDate,
     val mealType: String,
     val query: String = "",
+    val showAllCategories: Boolean = false,
     val swapPlannedMealId: Long? = null,
     val swapDefaultServings: Double = 1.0,
 )
