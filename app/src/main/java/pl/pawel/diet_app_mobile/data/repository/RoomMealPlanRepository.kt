@@ -5,11 +5,14 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import pl.pawel.diet_app_mobile.data.local.dao.MealPlanDao
 import pl.pawel.diet_app_mobile.domain.model.DayPlan
+import pl.pawel.diet_app_mobile.domain.model.ImportWeekResult
 import pl.pawel.diet_app_mobile.domain.model.Meal
 import pl.pawel.diet_app_mobile.domain.model.MealPlan
 import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
+import pl.pawel.diet_app_mobile.domain.model.WeekShareSlot
 import pl.pawel.diet_app_mobile.domain.repository.MealPlanRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
 
@@ -100,6 +103,37 @@ class RoomMealPlanRepository @Inject constructor(
             .toList()
     }
 
+    override suspend fun applySharedWeek(
+        weekStartDate: LocalDate,
+        slots: List<WeekShareSlot>,
+    ): ImportWeekResult {
+        val weekString = weekStartDate.format(DATE_FORMATTER)
+        val mealsByName: Map<String, Meal> = mealRepository.observeMeals().first()
+            .associateBy { it.name.normalizedKey() }
+
+        mealPlanDao.deletePlannedMealsForWeek(weekString)
+
+        var applied = 0
+        val skipped = LinkedHashSet<String>()
+        slots.sortedBy { it.dayOffset }.forEach { slot ->
+            val meal = mealsByName[slot.mealName.normalizedKey()]
+            if (meal == null) {
+                skipped.add(slot.mealName)
+                return@forEach
+            }
+            val date = weekStartDate.plusDays(slot.dayOffset.toLong())
+            mealPlanDao.addPlannedMeal(
+                weekStartDate = weekString,
+                mealId = meal.id,
+                date = date.format(DATE_FORMATTER),
+                mealType = slot.mealType,
+                servings = slot.servings,
+            )
+            applied++
+        }
+        return ImportWeekResult(applied = applied, skipped = skipped.toList())
+    }
+
     override suspend fun copyDayCategory(
         sourceDate: LocalDate,
         targetDate: LocalDate,
@@ -126,3 +160,5 @@ class RoomMealPlanRepository @Inject constructor(
         val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     }
 }
+
+private fun String.normalizedKey(): String = trim().lowercase()

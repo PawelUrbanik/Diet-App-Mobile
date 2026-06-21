@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +17,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pl.pawel.diet_app_mobile.data.share.WeekPlanCodec
 import pl.pawel.diet_app_mobile.domain.model.DayPlan
+import pl.pawel.diet_app_mobile.domain.model.ImportWeekResult
 import pl.pawel.diet_app_mobile.domain.model.Meal
 import pl.pawel.diet_app_mobile.domain.model.MealPlan
 import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
+import pl.pawel.diet_app_mobile.domain.model.WeekShare
+import pl.pawel.diet_app_mobile.domain.model.WeekShareSlot
 import pl.pawel.diet_app_mobile.domain.model.WeekTemplate
 import pl.pawel.diet_app_mobile.domain.repository.MealPlanRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
@@ -80,6 +85,12 @@ class PlanViewModel @Inject constructor(
 
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+
+    private val _shareQr = MutableStateFlow<ShareQrState?>(null)
+    val shareQr: StateFlow<ShareQrState?> = _shareQr.asStateFlow()
+
+    private val _importPlan = MutableStateFlow<ImportPlanState?>(null)
+    val importPlan: StateFlow<ImportPlanState?> = _importPlan.asStateFlow()
 
     val availableMeals: StateFlow<List<Meal>> = combine(allMeals, _addSheet) { meals, sheet ->
         if (sheet == null) return@combine emptyList()
@@ -372,6 +383,81 @@ class PlanViewModel @Inject constructor(
     fun consumeMessage() {
         _message.value = null
     }
+
+    fun openShareQr() {
+        val share = buildCurrentWeekShare()
+        if (share.slots.isEmpty()) {
+            _message.value = "Tydzień jest pusty — nie ma czego udostępnić."
+            return
+        }
+        _shareQr.value = ShareQrState(
+            payload = WeekPlanCodec.encode(share),
+            label = share.label,
+            mealCount = share.slots.size,
+        )
+    }
+
+    fun closeShareQr() {
+        _shareQr.value = null
+    }
+
+    fun onPlanScanned(text: String) {
+        val share = WeekPlanCodec.decode(text)
+        if (share == null || share.slots.isEmpty()) {
+            _message.value = "Nieprawidłowy kod planu."
+            return
+        }
+        _importPlan.value = ImportPlanState(share = share, targetWeekStart = _weekStartDate.value)
+    }
+
+    fun onImportWeekChange(weekStart: LocalDate) {
+        _importPlan.update { it?.copy(targetWeekStart = weekStart.mondayOfWeek()) }
+    }
+
+    fun cancelImport() {
+        _importPlan.value = null
+    }
+
+    fun confirmImport() {
+        val state = _importPlan.value ?: return
+        val target = state.targetWeekStart
+        _importPlan.value = null
+        viewModelScope.launch {
+            runCatching { mealPlanRepository.applySharedWeek(target, state.share.slots) }
+                .onSuccess { result ->
+                    _weekStartDate.value = target
+                    _message.value = buildImportMessage(result)
+                }
+                .onFailure { _message.value = "Nie udało się zastosować planu." }
+        }
+    }
+
+    private fun buildCurrentWeekShare(): WeekShare {
+        val currentPlan = plan.value
+        val weekStart = _weekStartDate.value
+        val slots = currentPlan.days.flatMap { day ->
+            val offset = (day.date.toEpochDay() - weekStart.toEpochDay()).toInt()
+            day.plannedMeals.map { planned ->
+                WeekShareSlot(
+                    dayOffset = offset,
+                    mealType = planned.mealType,
+                    mealName = planned.meal.name,
+                    servings = planned.servings,
+                )
+            }
+        }
+        val label = "${weekStart.format(SHARE_DATE_FORMATTER)}–" +
+            weekStart.plusDays(6).format(SHARE_DATE_FORMATTER)
+        return WeekShare(label = label, slots = slots)
+    }
+
+    private fun buildImportMessage(result: ImportWeekResult): String {
+        val applied = "Zastosowano plan (${result.applied} posiłków)."
+        if (result.skipped.isEmpty()) return applied
+        val shown = result.skipped.take(3).joinToString(", ")
+        val more = if (result.skipped.size > 3) " i ${result.skipped.size - 3} więcej" else ""
+        return "$applied Pominięto: $shown$more."
+    }
 }
 
 data class AddMealSheetState(
@@ -413,6 +499,19 @@ data class ApplyTemplateConfirmState(
     val template: WeekTemplate,
     val existingMealsCount: Int,
 )
+
+data class ShareQrState(
+    val payload: String,
+    val label: String,
+    val mealCount: Int,
+)
+
+data class ImportPlanState(
+    val share: WeekShare,
+    val targetWeekStart: LocalDate,
+)
+
+private val SHARE_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM")
 
 private fun emptyPlan(weekStart: LocalDate): MealPlan = MealPlan(
     id = 0,

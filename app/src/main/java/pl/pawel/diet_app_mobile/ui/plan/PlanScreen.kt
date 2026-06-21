@@ -56,6 +56,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.time.LocalDate
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import pl.pawel.diet_app_mobile.domain.model.DayPlan
@@ -84,6 +87,7 @@ import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
 import pl.pawel.diet_app_mobile.domain.model.WeekTemplate
 import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
 import pl.pawel.diet_app_mobile.ui.components.ConfirmDeleteDialog
+import pl.pawel.diet_app_mobile.ui.components.QrCodeImage
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
@@ -117,6 +121,8 @@ fun PlanRoute(
     val templatesSheet by viewModel.templatesSheet.collectAsState()
     val saveTemplateDialog by viewModel.saveTemplateDialog.collectAsState()
     val applyConfirm by viewModel.applyConfirm.collectAsState()
+    val shareQr by viewModel.shareQr.collectAsState()
+    val importPlan by viewModel.importPlan.collectAsState()
     val message by viewModel.message.collectAsState()
 
     PlanScreen(
@@ -130,8 +136,16 @@ fun PlanRoute(
         templatesSheet = templatesSheet,
         saveTemplateDialog = saveTemplateDialog,
         applyConfirm = applyConfirm,
+        shareQr = shareQr,
+        importPlan = importPlan,
         message = message,
         onConsumeMessage = viewModel::consumeMessage,
+        onOpenShareQr = viewModel::openShareQr,
+        onCloseShareQr = viewModel::closeShareQr,
+        onPlanScanned = viewModel::onPlanScanned,
+        onImportWeekChange = viewModel::onImportWeekChange,
+        onConfirmImport = viewModel::confirmImport,
+        onCancelImport = viewModel::cancelImport,
         onOpenApplyTemplates = viewModel::openApplyTemplatesSheet,
         onCloseTemplatesSheet = viewModel::closeTemplatesSheet,
         onSelectTemplate = viewModel::requestApplyTemplate,
@@ -178,8 +192,16 @@ private fun PlanScreen(
     templatesSheet: TemplatesSheetMode?,
     saveTemplateDialog: SaveTemplateDialogState?,
     applyConfirm: ApplyTemplateConfirmState?,
+    shareQr: ShareQrState?,
+    importPlan: ImportPlanState?,
     message: String?,
     onConsumeMessage: () -> Unit,
+    onOpenShareQr: () -> Unit,
+    onCloseShareQr: () -> Unit,
+    onPlanScanned: (String) -> Unit,
+    onImportWeekChange: (LocalDate) -> Unit,
+    onConfirmImport: () -> Unit,
+    onCancelImport: () -> Unit,
     onOpenApplyTemplates: () -> Unit,
     onCloseTemplatesSheet: () -> Unit,
     onSelectTemplate: (WeekTemplate) -> Unit,
@@ -221,6 +243,9 @@ private fun PlanScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var overflowExpanded by remember { mutableStateOf(false) }
     var plannedMealPendingDelete by remember { mutableStateOf<PlannedMeal?>(null) }
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        result.contents?.let(onPlanScanned)
+    }
 
     LaunchedEffect(message) {
         message?.let {
@@ -267,6 +292,27 @@ private fun PlanScreen(
                             onClick = {
                                 overflowExpanded = false
                                 onOpenSaveTemplate()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Pokaż kod QR tygodnia") },
+                            enabled = plan.hasPlannedMeals,
+                            onClick = {
+                                overflowExpanded = false
+                                onOpenShareQr()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Skanuj kod QR") },
+                            onClick = {
+                                overflowExpanded = false
+                                scanLauncher.launch(
+                                    ScanOptions()
+                                        .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                                        .setBeepEnabled(false)
+                                        .setOrientationLocked(false)
+                                        .setPrompt("Zeskanuj kod planu"),
+                                )
                             },
                         )
                     }
@@ -383,6 +429,104 @@ private fun PlanScreen(
             onDismiss = { plannedMealPendingDelete = null },
         )
     }
+
+    if (shareQr != null) {
+        ShareQrDialog(state = shareQr, onDismiss = onCloseShareQr)
+    }
+
+    if (importPlan != null) {
+        ImportPlanDialog(
+            state = importPlan,
+            onWeekChange = onImportWeekChange,
+            onConfirm = onConfirmImport,
+            onDismiss = onCancelImport,
+        )
+    }
+}
+
+@Composable
+private fun ShareQrDialog(state: ShareQrState, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Kod QR planu") },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "${state.label} · ${state.mealCount} posiłków",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                QrCodeImage(content = state.payload, modifier = Modifier.size(260.dp))
+                Text(
+                    text = "Na drugim telefonie: Plan → Skanuj kod QR.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Zamknij") }
+        },
+    )
+}
+
+@Composable
+private fun ImportPlanDialog(
+    state: ImportPlanState,
+    onWeekChange: (LocalDate) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val weekEnd = state.targetWeekStart.plusDays(6)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Zaimportować plan?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Zeskanowany plan: ${state.share.slots.size} posiłków.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "Wybierz tydzień docelowy:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    IconButton(onClick = { onWeekChange(state.targetWeekStart.minusWeeks(1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Poprzedni tydzień")
+                    }
+                    Text(
+                        text = "${state.targetWeekStart.format(WEEK_RANGE_FORMATTER)}–" +
+                            weekEnd.format(WEEK_RANGE_FORMATTER),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    IconButton(onClick = { onWeekChange(state.targetWeekStart.plusWeeks(1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Następny tydzień")
+                    }
+                }
+                Text(
+                    text = "Istniejące posiłki w tym tygodniu zostaną zastąpione.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Zastosuj") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        },
+    )
 }
 
 @Composable

@@ -2,7 +2,9 @@ package pl.pawel.diet_app_mobile.domain.repository
 
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import pl.pawel.diet_app_mobile.domain.model.ImportWeekResult
 import pl.pawel.diet_app_mobile.domain.model.MealPlan
+import pl.pawel.diet_app_mobile.domain.model.WeekShareSlot
 
 interface MealPlanRepository {
     fun observeWeekPlan(weekStartDate: LocalDate): Flow<MealPlan>
@@ -26,6 +28,15 @@ interface MealPlanRepository {
      * zaplanowano posiłek o id [mealId]. Działa również przez granicę tygodnia.
      */
     suspend fun adjacentDaysWithSameMeal(mealId: Long, date: LocalDate): List<LocalDate>
+
+    /**
+     * Zastępuje plan tygodnia [weekStartDate] slotami z udostępnionego planu. Posiłki są
+     * dopasowywane po nazwie; nieznane lokalnie są pomijane i zwracane w wyniku.
+     */
+    suspend fun applySharedWeek(
+        weekStartDate: LocalDate,
+        slots: List<WeekShareSlot>,
+    ): ImportWeekResult
 
     /**
      * Copies all planned meals from [sourceDate] in [mealType] to [targetDate] under [targetWeekStartDate].
