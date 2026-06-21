@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pl.pawel.diet_app_mobile.data.local.seed.MealSeeder
 import pl.pawel.diet_app_mobile.domain.model.Meal
 import pl.pawel.diet_app_mobile.domain.model.MealIngredient
 import pl.pawel.diet_app_mobile.domain.model.NutritionSummary
@@ -26,7 +25,6 @@ import pl.pawel.diet_app_mobile.ui.products.ProductSortBy
 class MealsViewModel @Inject constructor(
     private val mealRepository: MealRepository,
     productRepository: ProductRepository,
-    private val mealSeeder: MealSeeder,
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow("")
 
@@ -94,12 +92,6 @@ class MealsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
-
-    init {
-        viewModelScope.launch {
-            mealSeeder.seedMissingMeals()
-        }
-    }
 
     fun openAddMeal() {
         _addMealState.value = MealFormState()
@@ -351,8 +343,8 @@ val MEAL_CATEGORIES = listOf(
     "Śniadanie",
     "Drugie śniadanie",
     "Obiad",
+    "Podwieczorek",
     "Kolacja",
-    "Przekąska",
 )
 
 private fun MealFormState.toMealOrNull(): Meal? {

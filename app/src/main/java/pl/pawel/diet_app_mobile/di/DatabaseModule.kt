@@ -12,9 +12,12 @@ import pl.pawel.diet_app_mobile.data.local.dao.MealDao
 import pl.pawel.diet_app_mobile.data.local.dao.MealPlanDao
 import pl.pawel.diet_app_mobile.data.local.dao.ProductDao
 import pl.pawel.diet_app_mobile.data.local.dao.ShoppingListDao
+import pl.pawel.diet_app_mobile.data.local.dao.WeekTemplateDao
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_1_2
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_2_3
+import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_3_4
+import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_4_5
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,7 +30,7 @@ object DatabaseModule {
         context,
         DietAppDatabase::class.java,
         "diet_app.db",
-    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         .build()
 
     @Provides
@@ -42,4 +45,8 @@ object DatabaseModule {
     @Provides
     fun provideShoppingListDao(database: DietAppDatabase): ShoppingListDao =
         database.shoppingListDao()
+
+    @Provides
+    fun provideWeekTemplateDao(database: DietAppDatabase): WeekTemplateDao =
+        database.weekTemplateDao()
 }

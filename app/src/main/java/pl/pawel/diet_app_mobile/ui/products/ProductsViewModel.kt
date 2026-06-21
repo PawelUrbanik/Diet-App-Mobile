@@ -12,14 +12,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pl.pawel.diet_app_mobile.data.local.seed.ProductSeeder
 import pl.pawel.diet_app_mobile.domain.model.Product
 import pl.pawel.diet_app_mobile.domain.repository.ProductRepository
 
 @HiltViewModel
 class ProductsViewModel @Inject constructor(
     private val productRepository: ProductRepository,
-    private val productSeeder: ProductSeeder,
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow("")
     private val _sortBy = MutableStateFlow(ProductSortBy.Name)
@@ -57,12 +55,6 @@ class ProductsViewModel @Inject constructor(
 
     private val _productPendingDelete = MutableStateFlow<Product?>(null)
     val productPendingDelete: StateFlow<Product?> = _productPendingDelete.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            productSeeder.seedMissingProducts()
-        }
-    }
 
     fun onSearchQueryChange(value: String) {
         searchQuery.value = value

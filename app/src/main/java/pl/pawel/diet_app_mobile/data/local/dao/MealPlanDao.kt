@@ -38,6 +38,20 @@ interface MealPlanDao {
     suspend fun getPlannedMealsForSlot(date: String, mealType: String): List<PlannedMealEntity>
 
     @Query(
+        "SELECT pm.* FROM planned_meals pm " +
+            "INNER JOIN meal_plans mp ON mp.id = pm.mealPlanId " +
+            "WHERE mp.weekStartDate = :weekStartDate " +
+            "ORDER BY pm.date ASC, pm.position ASC",
+    )
+    suspend fun getPlannedMealsForWeek(weekStartDate: String): List<PlannedMealEntity>
+
+    @Query(
+        "DELETE FROM planned_meals WHERE mealPlanId IN " +
+            "(SELECT id FROM meal_plans WHERE weekStartDate = :weekStartDate)",
+    )
+    suspend fun deletePlannedMealsForWeek(weekStartDate: String)
+
+    @Query(
         "SELECT * FROM planned_meals WHERE date >= :startDate AND date <= :endDate " +
             "ORDER BY date ASC, position ASC",
     )

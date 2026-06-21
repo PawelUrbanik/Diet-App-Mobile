@@ -20,14 +20,17 @@ import pl.pawel.diet_app_mobile.domain.model.DayPlan
 import pl.pawel.diet_app_mobile.domain.model.Meal
 import pl.pawel.diet_app_mobile.domain.model.MealPlan
 import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
+import pl.pawel.diet_app_mobile.domain.model.WeekTemplate
 import pl.pawel.diet_app_mobile.domain.repository.MealPlanRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
+import pl.pawel.diet_app_mobile.domain.repository.WeekTemplateRepository
 import pl.pawel.diet_app_mobile.ui.meals.MEAL_CATEGORIES
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlanViewModel @Inject constructor(
     private val mealPlanRepository: MealPlanRepository,
+    private val weekTemplateRepository: WeekTemplateRepository,
     mealRepository: MealRepository,
 ) : ViewModel() {
     private val _weekStartDate = MutableStateFlow(LocalDate.now().mondayOfWeek())
@@ -58,6 +61,25 @@ class PlanViewModel @Inject constructor(
 
     private val _editDialog = MutableStateFlow<EditServingsDialogState?>(null)
     val editDialog: StateFlow<EditServingsDialogState?> = _editDialog.asStateFlow()
+
+    val templates: StateFlow<List<WeekTemplate>> = weekTemplateRepository.observeTemplates()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+
+    private val _templatesSheet = MutableStateFlow<TemplatesSheetMode?>(null)
+    val templatesSheet: StateFlow<TemplatesSheetMode?> = _templatesSheet.asStateFlow()
+
+    private val _saveTemplateDialog = MutableStateFlow<SaveTemplateDialogState?>(null)
+    val saveTemplateDialog: StateFlow<SaveTemplateDialogState?> = _saveTemplateDialog.asStateFlow()
+
+    private val _applyConfirm = MutableStateFlow<ApplyTemplateConfirmState?>(null)
+    val applyConfirm: StateFlow<ApplyTemplateConfirmState?> = _applyConfirm.asStateFlow()
+
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
 
     val availableMeals: StateFlow<List<Meal>> = combine(allMeals, _addSheet) { meals, sheet ->
         if (sheet == null) return@combine emptyList()
@@ -243,6 +265,99 @@ class PlanViewModel @Inject constructor(
         _editDialog.value = null
         removePlannedMeal(dialog.plannedMealId)
     }
+
+    fun openApplyTemplatesSheet() {
+        _templatesSheet.value = TemplatesSheetMode.Apply
+    }
+
+    fun closeTemplatesSheet() {
+        _templatesSheet.value = null
+    }
+
+    fun requestApplyTemplate(template: WeekTemplate) {
+        val existing = plan.value.days.sumOf { it.plannedMeals.size }
+        _applyConfirm.value = ApplyTemplateConfirmState(
+            template = template,
+            existingMealsCount = existing,
+        )
+    }
+
+    fun cancelApplyTemplate() {
+        _applyConfirm.value = null
+    }
+
+    fun confirmApplyTemplate() {
+        val confirm = _applyConfirm.value ?: return
+        val target = _weekStartDate.value
+        _applyConfirm.value = null
+        _templatesSheet.value = null
+        viewModelScope.launch {
+            runCatching {
+                weekTemplateRepository.applyTemplate(confirm.template.id, target)
+            }
+                .onSuccess {
+                    _message.value = "Zastosowano szablon „${confirm.template.name}”."
+                }
+                .onFailure {
+                    _message.value = "Nie udało się zastosować szablonu."
+                }
+        }
+    }
+
+    fun openSaveTemplateDialog() {
+        _saveTemplateDialog.value = SaveTemplateDialogState()
+    }
+
+    fun closeSaveTemplateDialog() {
+        _saveTemplateDialog.value = null
+    }
+
+    fun onSaveTemplateNameChange(value: String) {
+        _saveTemplateDialog.value = _saveTemplateDialog.value?.copy(name = value, errorMessage = null)
+    }
+
+    fun confirmSaveTemplate() {
+        val dialog = _saveTemplateDialog.value ?: return
+        val name = dialog.name.trim()
+        if (name.isBlank()) {
+            _saveTemplateDialog.value = dialog.copy(errorMessage = "Podaj nazwę szablonu.")
+            return
+        }
+        val weekStart = _weekStartDate.value
+        viewModelScope.launch {
+            runCatching {
+                weekTemplateRepository.saveCurrentWeekAsTemplate(name, weekStart)
+            }
+                .onSuccess { count ->
+                    if (count == 0) {
+                        _saveTemplateDialog.value = dialog.copy(
+                            errorMessage = "Tydzień jest pusty — nie ma czego zapisać.",
+                        )
+                    } else {
+                        _saveTemplateDialog.value = null
+                        _message.value = "Zapisano szablon „$name” ($count posiłków)."
+                    }
+                }
+                .onFailure {
+                    _saveTemplateDialog.value = dialog.copy(
+                        errorMessage = "Nie udało się zapisać szablonu.",
+                    )
+                }
+        }
+    }
+
+    fun deleteTemplate(template: WeekTemplate) {
+        if (template.isPredefined) return
+        viewModelScope.launch {
+            runCatching { weekTemplateRepository.deleteTemplate(template.id) }
+                .onSuccess { _message.value = "Usunięto szablon „${template.name}”." }
+                .onFailure { _message.value = "Nie udało się usunąć szablonu." }
+        }
+    }
+
+    fun consumeMessage() {
+        _message.value = null
+    }
 }
 
 data class AddMealSheetState(
@@ -270,6 +385,18 @@ data class EditServingsDialogState(
     val date: LocalDate,
     val mealType: String,
     val errorMessage: String? = null,
+)
+
+enum class TemplatesSheetMode { Apply }
+
+data class SaveTemplateDialogState(
+    val name: String = "",
+    val errorMessage: String? = null,
+)
+
+data class ApplyTemplateConfirmState(
+    val template: WeekTemplate,
+    val existingMealsCount: Int,
 )
 
 private fun emptyPlan(weekStart: LocalDate): MealPlan = MealPlan(

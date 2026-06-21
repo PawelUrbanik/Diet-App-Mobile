@@ -19,7 +19,7 @@ fun mealCategoryIcon(category: String): ImageVector = when (category) {
     "Drugie śniadanie" -> Icons.Filled.EmojiFoodBeverage
     "Obiad" -> Icons.Filled.LunchDining
     "Kolacja" -> Icons.Filled.DinnerDining
-    "Przekąska" -> Icons.Filled.Cookie
+    "Podwieczorek" -> Icons.Filled.Cookie
     else -> Icons.Filled.Restaurant
 }
 

@@ -34,6 +34,12 @@ interface MealDao {
     @Update
     suspend fun updateMeal(meal: MealEntity)
 
+    @Query(
+        "UPDATE meals SET category = :newCategory " +
+            "WHERE name = :name AND category = :previousCategory",
+    )
+    suspend fun reassignCategoryByName(name: String, previousCategory: String, newCategory: String)
+
     @Delete
     suspend fun deleteMeal(meal: MealEntity)
 

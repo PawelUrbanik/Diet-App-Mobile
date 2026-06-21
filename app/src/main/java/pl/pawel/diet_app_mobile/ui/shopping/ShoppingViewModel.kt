@@ -14,13 +14,22 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pl.pawel.diet_app_mobile.data.preferences.ShoppingRangeDates
+import pl.pawel.diet_app_mobile.data.preferences.UserPreferencesRepository
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
 import pl.pawel.diet_app_mobile.domain.repository.ShoppingListRepository
 
 @HiltViewModel
 class ShoppingViewModel @Inject constructor(
     private val shoppingListRepository: ShoppingListRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
+    val currentRange: StateFlow<ShoppingRangeDates?> = userPreferencesRepository.lastShoppingRange
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
     val groups: StateFlow<List<ShoppingGroup>> = shoppingListRepository.observeItems()
         .map { items -> items.toGroups() }
         .stateIn(
@@ -91,6 +100,7 @@ class ShoppingViewModel @Inject constructor(
             _isGenerating.value = true
             runCatching { shoppingListRepository.generateFromPlan(start, end) }
                 .onSuccess { count ->
+                    userPreferencesRepository.setLastShoppingRange(start, end)
                     _message.value = if (count == 0) {
                         "Brak zaplanowanych posiłków w wybranym zakresie."
                     } else {
@@ -144,7 +154,10 @@ class ShoppingViewModel @Inject constructor(
     }
 
     fun clearAll() {
-        viewModelScope.launch { runCatching { shoppingListRepository.clearAll() } }
+        viewModelScope.launch {
+            runCatching { shoppingListRepository.clearAll() }
+            userPreferencesRepository.clearLastShoppingRange()
+        }
     }
 
     fun consumeMessage() {

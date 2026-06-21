@@ -60,6 +60,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import pl.pawel.diet_app_mobile.data.preferences.ShoppingRangeDates
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 
@@ -78,9 +79,11 @@ fun ShoppingRoute(
     val manualDialog by viewModel.manualDialog.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
     val message by viewModel.message.collectAsState()
+    val currentRange by viewModel.currentRange.collectAsState()
 
     ShoppingScreen(
         groups = groups,
+        currentRange = currentRange,
         generateDialog = generateDialog,
         manualDialog = manualDialog,
         isGenerating = isGenerating,
@@ -107,6 +110,7 @@ fun ShoppingRoute(
 @Composable
 private fun ShoppingScreen(
     groups: List<ShoppingGroup>,
+    currentRange: ShoppingRangeDates?,
     generateDialog: GenerateDialogState?,
     manualDialog: ManualDialogState?,
     isGenerating: Boolean,
@@ -141,7 +145,18 @@ private fun ShoppingScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Zakupy") },
+                title = {
+                    Column {
+                        Text("Zakupy")
+                        if (currentRange != null) {
+                            Text(
+                                text = formatRange(currentRange.start, currentRange.end),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenGenerate) {
                         Icon(Icons.Default.Refresh, contentDescription = "Generuj z planu")

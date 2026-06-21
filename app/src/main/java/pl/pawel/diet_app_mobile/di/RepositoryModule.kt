@@ -8,10 +8,12 @@ import pl.pawel.diet_app_mobile.data.repository.RoomMealPlanRepository
 import pl.pawel.diet_app_mobile.data.repository.RoomMealRepository
 import pl.pawel.diet_app_mobile.data.repository.RoomProductRepository
 import pl.pawel.diet_app_mobile.data.repository.RoomShoppingListRepository
+import pl.pawel.diet_app_mobile.data.repository.RoomWeekTemplateRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealPlanRepository
 import pl.pawel.diet_app_mobile.domain.repository.MealRepository
 import pl.pawel.diet_app_mobile.domain.repository.ProductRepository
 import pl.pawel.diet_app_mobile.domain.repository.ShoppingListRepository
+import pl.pawel.diet_app_mobile.domain.repository.WeekTemplateRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -35,4 +37,9 @@ abstract class RepositoryModule {
     abstract fun bindShoppingListRepository(
         repository: RoomShoppingListRepository,
     ): ShoppingListRepository
+
+    @Binds
+    abstract fun bindWeekTemplateRepository(
+        repository: RoomWeekTemplateRepository,
+    ): WeekTemplateRepository
 }

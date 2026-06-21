@@ -25,9 +25,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +47,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,8 +57,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,6 +80,7 @@ import pl.pawel.diet_app_mobile.domain.model.DayPlan
 import pl.pawel.diet_app_mobile.domain.model.Meal
 import pl.pawel.diet_app_mobile.domain.model.MealPlan
 import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
+import pl.pawel.diet_app_mobile.domain.model.WeekTemplate
 import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
@@ -78,7 +88,7 @@ import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
 import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
 import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
 import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
-import pl.pawel.diet_app_mobile.ui.theme.MealColorPrzekaski
+import pl.pawel.diet_app_mobile.ui.theme.MealColorPodwieczorek
 import pl.pawel.diet_app_mobile.ui.theme.MealColorSniadanie
 
 private val POLISH_LOCALE: Locale = Locale.forLanguageTag("pl")
@@ -101,6 +111,11 @@ fun PlanRoute(
     val servingsDialog by viewModel.servingsDialog.collectAsState()
     val editDialog by viewModel.editDialog.collectAsState()
     val availableMeals by viewModel.availableMeals.collectAsState()
+    val templates by viewModel.templates.collectAsState()
+    val templatesSheet by viewModel.templatesSheet.collectAsState()
+    val saveTemplateDialog by viewModel.saveTemplateDialog.collectAsState()
+    val applyConfirm by viewModel.applyConfirm.collectAsState()
+    val message by viewModel.message.collectAsState()
 
     PlanScreen(
         plan = plan,
@@ -109,6 +124,22 @@ fun PlanRoute(
         servingsDialog = servingsDialog,
         editDialog = editDialog,
         availableMeals = availableMeals,
+        templates = templates,
+        templatesSheet = templatesSheet,
+        saveTemplateDialog = saveTemplateDialog,
+        applyConfirm = applyConfirm,
+        message = message,
+        onConsumeMessage = viewModel::consumeMessage,
+        onOpenApplyTemplates = viewModel::openApplyTemplatesSheet,
+        onCloseTemplatesSheet = viewModel::closeTemplatesSheet,
+        onSelectTemplate = viewModel::requestApplyTemplate,
+        onConfirmApply = viewModel::confirmApplyTemplate,
+        onCancelApply = viewModel::cancelApplyTemplate,
+        onDeleteTemplate = viewModel::deleteTemplate,
+        onOpenSaveTemplate = viewModel::openSaveTemplateDialog,
+        onCloseSaveTemplate = viewModel::closeSaveTemplateDialog,
+        onSaveTemplateNameChange = viewModel::onSaveTemplateNameChange,
+        onConfirmSaveTemplate = viewModel::confirmSaveTemplate,
         onPreviousWeek = viewModel::goToPreviousWeek,
         onNextWeek = viewModel::goToNextWeek,
         onToday = viewModel::goToCurrentWeek,
@@ -141,6 +172,22 @@ private fun PlanScreen(
     servingsDialog: ServingsDialogState?,
     editDialog: EditServingsDialogState?,
     availableMeals: List<Meal>,
+    templates: List<WeekTemplate>,
+    templatesSheet: TemplatesSheetMode?,
+    saveTemplateDialog: SaveTemplateDialogState?,
+    applyConfirm: ApplyTemplateConfirmState?,
+    message: String?,
+    onConsumeMessage: () -> Unit,
+    onOpenApplyTemplates: () -> Unit,
+    onCloseTemplatesSheet: () -> Unit,
+    onSelectTemplate: (WeekTemplate) -> Unit,
+    onConfirmApply: () -> Unit,
+    onCancelApply: () -> Unit,
+    onDeleteTemplate: (WeekTemplate) -> Unit,
+    onOpenSaveTemplate: () -> Unit,
+    onCloseSaveTemplate: () -> Unit,
+    onSaveTemplateNameChange: (String) -> Unit,
+    onConfirmSaveTemplate: () -> Unit,
     onPreviousWeek: () -> Unit,
     onNextWeek: () -> Unit,
     onToday: () -> Unit,
@@ -169,6 +216,15 @@ private fun PlanScreen(
         0
     }
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { 7 })
+    val snackbarHostState = remember { SnackbarHostState() }
+    var overflowExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(message) {
+        message?.let {
+            snackbarHostState.showSnackbar(it)
+            onConsumeMessage()
+        }
+    }
 
     LaunchedEffect(weekStartDate) {
         val newPage = if (today in weekStartDate..weekStartDate.plusDays(6)) {
@@ -180,12 +236,36 @@ private fun PlanScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Plan") },
                 actions = {
                     IconButton(onClick = onToday) {
                         Icon(Icons.Default.Today, contentDescription = "Bieżący tydzień")
+                    }
+                    IconButton(onClick = { overflowExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Więcej")
+                    }
+                    DropdownMenu(
+                        expanded = overflowExpanded,
+                        onDismissRequest = { overflowExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Zastosuj szablon") },
+                            onClick = {
+                                overflowExpanded = false
+                                onOpenApplyTemplates()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Zapisz tydzień jako szablon") },
+                            enabled = plan.hasPlannedMeals,
+                            onClick = {
+                                overflowExpanded = false
+                                onOpenSaveTemplate()
+                            },
+                        )
                     }
                 },
             )
@@ -263,6 +343,32 @@ private fun PlanScreen(
             onSwap = onSwapFromEdit,
         )
     }
+
+    if (templatesSheet == TemplatesSheetMode.Apply) {
+        TemplatesBottomSheet(
+            templates = templates,
+            onDismiss = onCloseTemplatesSheet,
+            onSelect = onSelectTemplate,
+            onDelete = onDeleteTemplate,
+        )
+    }
+
+    if (applyConfirm != null) {
+        ApplyTemplateConfirmDialog(
+            state = applyConfirm,
+            onConfirm = onConfirmApply,
+            onDismiss = onCancelApply,
+        )
+    }
+
+    if (saveTemplateDialog != null) {
+        SaveTemplateDialog(
+            state = saveTemplateDialog,
+            onNameChange = onSaveTemplateNameChange,
+            onConfirm = onConfirmSaveTemplate,
+            onDismiss = onCloseSaveTemplate,
+        )
+    }
 }
 
 @Composable
@@ -321,6 +427,146 @@ private fun WeekTotalsRow(nutrition: pl.pawel.diet_app_mobile.domain.model.Nutri
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TemplatesBottomSheet(
+    templates: List<WeekTemplate>,
+    onDismiss: () -> Unit,
+    onSelect: (WeekTemplate) -> Unit,
+    onDelete: (WeekTemplate) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Zastosuj szablon tygodnia",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (templates.isEmpty()) {
+                Text(
+                    text = "Brak szablonów. Zapisz najpierw tydzień jako szablon.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Card {
+                    templates.forEachIndexed { index, template ->
+                        TemplateRow(
+                            template = template,
+                            onClick = { onSelect(template) },
+                            onDelete = { onDelete(template) },
+                        )
+                        if (index < templates.lastIndex) HorizontalDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TemplateRow(
+    template: WeekTemplate,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(template.name) },
+        supportingContent = {
+            val tag = if (template.isPredefined) "Wbudowany" else "Twój"
+            Text(
+                text = "$tag · ${template.totalSlots} posiłków",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        },
+        trailingContent = {
+            if (!template.isPredefined) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Usuń szablon",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.clickable(onClick = onClick),
+    )
+}
+
+@Composable
+private fun ApplyTemplateConfirmDialog(
+    state: ApplyTemplateConfirmState,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Zastosować szablon?") },
+        text = {
+            val replaceLine = if (state.existingMealsCount > 0) {
+                "Bieżący tydzień zawiera ${state.existingMealsCount} posiłków — zostaną zastąpione."
+            } else {
+                "Bieżący tydzień jest pusty."
+            }
+            Text("Szablon „${state.template.name}” doda ${state.template.totalSlots} posiłków.\n\n$replaceLine")
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Zastosuj") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        },
+    )
+}
+
+@Composable
+private fun SaveTemplateDialog(
+    state: SaveTemplateDialogState,
+    onNameChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Zapisz tydzień jako szablon") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = onNameChange,
+                    label = { Text("Nazwa szablonu") },
+                    singleLine = true,
+                    isError = state.errorMessage != null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                state.errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Zapisz") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Anuluj") }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -835,7 +1081,7 @@ private fun mealCategoryColor(category: String): Color = when (category) {
     "Drugie śniadanie" -> MealColorDrugieSniadanie
     "Obiad" -> MealColorObiad
     "Kolacja" -> MealColorKolacja
-    "Przekąska" -> MealColorPrzekaski
+    "Podwieczorek" -> MealColorPodwieczorek
     else -> MealColorObiad
 }
 

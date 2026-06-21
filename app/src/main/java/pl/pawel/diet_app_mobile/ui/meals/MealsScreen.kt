@@ -76,7 +76,7 @@ import pl.pawel.diet_app_mobile.ui.products.ProductSortBy
 import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
 import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
 import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
-import pl.pawel.diet_app_mobile.ui.theme.MealColorPrzekaski
+import pl.pawel.diet_app_mobile.ui.theme.MealColorPodwieczorek
 import pl.pawel.diet_app_mobile.ui.theme.MealColorSniadanie
 
 private enum class MealsNavTarget(val depth: Int) {
@@ -830,7 +830,7 @@ private fun mealCategoryColor(category: String): Color = when (category) {
     "Drugie śniadanie" -> MealColorDrugieSniadanie
     "Obiad" -> MealColorObiad
     "Kolacja" -> MealColorKolacja
-    "Przekąska" -> MealColorPrzekaski
+    "Podwieczorek" -> MealColorPodwieczorek
     else -> MealColorObiad
 }
 
