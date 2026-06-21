@@ -985,6 +985,32 @@ private fun ServingsPickerDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NutritionMacroBars(nutrition = meal.nutrition.times(servings))
+                if (meal.ingredients.isNotEmpty()) {
+                    HorizontalDivider()
+                    Text(
+                        text = "Składniki",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    meal.ingredients.forEach { ingredient ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = ingredient.product.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = "${(ingredient.quantityGrams * servings).formatGrams()} g",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
                 meal.description?.takeIf { it.isNotBlank() }?.let { description ->
                     HorizontalDivider()
                     Text(
@@ -1118,4 +1144,7 @@ private fun Double.formatKcal(): String =
     if (this % 1.0 == 0.0) toInt().toString() else "%.0f".format(this)
 
 private fun Double.formatServings(): String =
+    if (this % 1.0 == 0.0) toInt().toString() else "%.1f".format(this)
+
+private fun Double.formatGrams(): String =
     if (this % 1.0 == 0.0) toInt().toString() else "%.1f".format(this)
