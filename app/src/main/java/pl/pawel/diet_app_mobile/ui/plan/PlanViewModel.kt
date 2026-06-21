@@ -208,6 +208,20 @@ class PlanViewModel @Inject constructor(
             date = plannedMeal.date,
             mealType = plannedMeal.mealType,
         )
+        viewModelScope.launch {
+            val days = runCatching {
+                mealPlanRepository.adjacentDaysWithSameMeal(plannedMeal.meal.id, plannedMeal.date)
+            }.getOrDefault(emptyList())
+            if (days.isNotEmpty()) {
+                _editDialog.update { state ->
+                    if (state?.plannedMealId == plannedMeal.id) {
+                        state.copy(repeatsOnDays = days)
+                    } else {
+                        state
+                    }
+                }
+            }
+        }
     }
 
     fun closeEditDialog() {
@@ -385,6 +399,7 @@ data class EditServingsDialogState(
     val date: LocalDate,
     val mealType: String,
     val errorMessage: String? = null,
+    val repeatsOnDays: List<LocalDate> = emptyList(),
 )
 
 enum class TemplatesSheetMode { Apply }

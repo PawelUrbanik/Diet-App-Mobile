@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
@@ -931,11 +932,23 @@ private fun EditServingsDialog(
     onRemove: () -> Unit,
     onSwap: () -> Unit,
 ) {
+    val repeatHint = state.repeatsOnDays.takeIf { it.isNotEmpty() }?.let { days ->
+        val parts = days.map { day ->
+            when (day) {
+                state.date.minusDays(1) -> "dzień wcześniej"
+                state.date.plusDays(1) -> "dzień później"
+                else -> day.format(FULL_DAY_FORMATTER)
+            }
+        }
+        "Ten posiłek jest w planie też ${parts.joinToString(" i ")} — " +
+            "możesz przyrządzić większą porcję na kilka dni."
+    }
     ServingsPickerDialog(
         meal = state.meal,
         servings = state.servings,
         errorMessage = state.errorMessage,
         confirmLabel = "Zapisz",
+        hint = repeatHint,
         onServingsChange = onServingsChange,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -955,6 +968,7 @@ private fun ServingsPickerDialog(
     onDismiss: () -> Unit,
     onRemove: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
+    hint: String? = null,
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -964,6 +978,24 @@ private fun ServingsPickerDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                hint?.let { hintText ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = hintText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                }
                 Text(
                     text = "Liczba porcji",
                     style = MaterialTheme.typography.bodyMedium,

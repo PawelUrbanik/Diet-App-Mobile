@@ -84,6 +84,22 @@ class RoomMealPlanRepository @Inject constructor(
         mealPlanDao.deletePlannedMealById(plannedMealId)
     }
 
+    override suspend fun adjacentDaysWithSameMeal(mealId: Long, date: LocalDate): List<LocalDate> {
+        val previous = date.minusDays(1)
+        val next = date.plusDays(1)
+        return mealPlanDao.getPlannedMealsBetween(
+            startDate = previous.format(DATE_FORMATTER),
+            endDate = next.format(DATE_FORMATTER),
+        )
+            .asSequence()
+            .filter { it.mealId == mealId }
+            .map { LocalDate.parse(it.date, DATE_FORMATTER) }
+            .filter { it == previous || it == next }
+            .distinct()
+            .sorted()
+            .toList()
+    }
+
     override suspend fun copyDayCategory(
         sourceDate: LocalDate,
         targetDate: LocalDate,

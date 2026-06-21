@@ -22,6 +22,12 @@ interface MealPlanRepository {
     suspend fun removePlannedMeal(plannedMealId: Long)
 
     /**
+     * Zwraca sąsiednie dni (spośród [date] − 1 oraz [date] + 1), w których w dowolnym slocie
+     * zaplanowano posiłek o id [mealId]. Działa również przez granicę tygodnia.
+     */
+    suspend fun adjacentDaysWithSameMeal(mealId: Long, date: LocalDate): List<LocalDate>
+
+    /**
      * Copies all planned meals from [sourceDate] in [mealType] to [targetDate] under [targetWeekStartDate].
      * Returns number of meals copied (0 if source slot was empty).
      */
