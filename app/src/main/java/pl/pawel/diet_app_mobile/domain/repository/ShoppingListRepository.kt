@@ -2,10 +2,17 @@ package pl.pawel.diet_app_mobile.domain.repository
 
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import pl.pawel.diet_app_mobile.domain.model.PlannedMealSummary
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
 
 interface ShoppingListRepository {
     fun observeItems(): Flow<List<ShoppingListItem>>
+
+    /**
+     * Zwraca odrębne posiłki zaplanowane w zakresie [startDate]..[endDate] (z liczbą
+     * wystąpień), na potrzeby wyboru, które posiłki pominąć przy generowaniu listy.
+     */
+    suspend fun mealsInRange(startDate: LocalDate, endDate: LocalDate): List<PlannedMealSummary>
 
     /**
      * Generates shopping list entries from planned meals in the inclusive date range
@@ -16,7 +23,11 @@ interface ShoppingListRepository {
      *
      * Returns the number of distinct product lines after generation.
      */
-    suspend fun generateFromPlan(startDate: LocalDate, endDate: LocalDate): Int
+    suspend fun generateFromPlan(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        excludedMealIds: Set<Long> = emptySet(),
+    ): Int
 
     suspend fun setChecked(itemId: Long, isChecked: Boolean)
 

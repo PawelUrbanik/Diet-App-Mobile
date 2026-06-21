@@ -12,10 +12,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pl.pawel.diet_app_mobile.data.preferences.ShoppingRangeDates
 import pl.pawel.diet_app_mobile.data.preferences.UserPreferencesRepository
+import pl.pawel.diet_app_mobile.domain.model.PlannedMealSummary
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
 import pl.pawel.diet_app_mobile.domain.repository.ShoppingListRepository
 
@@ -50,6 +52,8 @@ class ShoppingViewModel @Inject constructor(
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
 
+    private var previewJob: Job? = null
+
     fun openGenerateDialog() {
         val today = LocalDate.now()
         val monday = today.with(DayOfWeek.MONDAY)
@@ -58,14 +62,17 @@ class ShoppingViewModel @Inject constructor(
             customStart = monday,
             customEnd = monday.plusDays(6),
         )
+        reloadMealsPreview()
     }
 
     fun closeGenerateDialog() {
+        previewJob?.cancel()
         _generateDialog.value = null
     }
 
     fun onRangeChange(range: ShoppingRange) {
         _generateDialog.value = _generateDialog.value?.copy(selectedRange = range)
+        reloadMealsPreview()
     }
 
     fun onCustomStartChange(date: LocalDate) {
@@ -74,6 +81,7 @@ class ShoppingViewModel @Inject constructor(
             val newEnd = if (state.customEnd.isBefore(date)) date else state.customEnd
             state.copy(customStart = date, customEnd = newEnd)
         }
+        reloadMealsPreview()
     }
 
     fun onCustomEndChange(date: LocalDate) {
@@ -82,23 +90,52 @@ class ShoppingViewModel @Inject constructor(
             val newStart = if (date.isBefore(state.customStart)) date else state.customStart
             state.copy(customStart = newStart, customEnd = date)
         }
+        reloadMealsPreview()
+    }
+
+    fun onToggleExcludedMeal(mealId: Long) {
+        _generateDialog.update { state ->
+            if (state == null) return@update null
+            val excluded = if (mealId in state.excludedMealIds) {
+                state.excludedMealIds - mealId
+            } else {
+                state.excludedMealIds + mealId
+            }
+            state.copy(excludedMealIds = excluded)
+        }
+    }
+
+    private fun resolveRange(state: GenerateDialogState): Pair<LocalDate, LocalDate> =
+        if (state.selectedRange == ShoppingRange.Custom) {
+            state.customStart to state.customEnd
+        } else {
+            state.selectedRange.resolve(LocalDate.now())
+        }
+
+    private fun reloadMealsPreview() {
+        val state = _generateDialog.value ?: return
+        val (start, end) = resolveRange(state)
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch {
+            val meals = runCatching { shoppingListRepository.mealsInRange(start, end) }
+                .getOrDefault(emptyList())
+            _generateDialog.update { it?.copy(meals = meals) }
+        }
     }
 
     fun confirmGenerate() {
         val dialog = _generateDialog.value ?: return
-        val (start, end) = if (dialog.selectedRange == ShoppingRange.Custom) {
-            dialog.customStart to dialog.customEnd
-        } else {
-            dialog.selectedRange.resolve(LocalDate.now())
-        }
+        val (start, end) = resolveRange(dialog)
         if (end.isBefore(start)) {
             _message.value = "Data „do\" jest wcześniejsza niż data „od\"."
             return
         }
+        val excludedMealIds = dialog.excludedMealIds
+        previewJob?.cancel()
         _generateDialog.value = null
         viewModelScope.launch {
             _isGenerating.value = true
-            runCatching { shoppingListRepository.generateFromPlan(start, end) }
+            runCatching { shoppingListRepository.generateFromPlan(start, end, excludedMealIds) }
                 .onSuccess { count ->
                     userPreferencesRepository.setLastShoppingRange(start, end)
                     _message.value = if (count == 0) {
@@ -174,6 +211,8 @@ data class GenerateDialogState(
     val selectedRange: ShoppingRange,
     val customStart: LocalDate,
     val customEnd: LocalDate,
+    val meals: List<PlannedMealSummary> = emptyList(),
+    val excludedMealIds: Set<Long> = emptySet(),
 )
 
 data class ManualDialogState(

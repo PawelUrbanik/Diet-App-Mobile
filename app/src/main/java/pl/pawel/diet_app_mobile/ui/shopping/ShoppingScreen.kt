@@ -62,6 +62,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import pl.pawel.diet_app_mobile.data.preferences.ShoppingRangeDates
 import pl.pawel.diet_app_mobile.domain.model.ShoppingListItem
+import pl.pawel.diet_app_mobile.ui.components.ConfirmDeleteDialog
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 
 private val POLISH_LOCALE: Locale = Locale.forLanguageTag("pl")
@@ -94,6 +95,7 @@ fun ShoppingRoute(
         onRangeChange = viewModel::onRangeChange,
         onCustomStartChange = viewModel::onCustomStartChange,
         onCustomEndChange = viewModel::onCustomEndChange,
+        onToggleExcludedMeal = viewModel::onToggleExcludedMeal,
         onConfirmGenerate = viewModel::confirmGenerate,
         onToggleChecked = viewModel::toggleChecked,
         onRemoveItem = viewModel::removeItem,
@@ -121,6 +123,7 @@ private fun ShoppingScreen(
     onRangeChange: (ShoppingRange) -> Unit,
     onCustomStartChange: (LocalDate) -> Unit,
     onCustomEndChange: (LocalDate) -> Unit,
+    onToggleExcludedMeal: (Long) -> Unit,
     onConfirmGenerate: () -> Unit,
     onToggleChecked: (ShoppingListItem) -> Unit,
     onRemoveItem: (Long) -> Unit,
@@ -133,6 +136,7 @@ private fun ShoppingScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var menuExpanded by remember { mutableStateOf(false) }
+    var itemPendingDelete by remember { mutableStateOf<ShoppingListItem?>(null) }
 
     LaunchedEffect(message) {
         message?.let {
@@ -224,7 +228,7 @@ private fun ShoppingScreen(
                             )
                         }
                         items(items = group.items, key = { it.id }) { item ->
-                            SwipeToDeleteContainer(onDeleteRequest = { onRemoveItem(item.id) }) {
+                            SwipeToDeleteContainer(onDeleteRequest = { itemPendingDelete = item }) {
                                 ShoppingItemRow(
                                     item = item,
                                     onToggle = { onToggleChecked(item) },
@@ -243,6 +247,7 @@ private fun ShoppingScreen(
             onRangeChange = onRangeChange,
             onCustomStartChange = onCustomStartChange,
             onCustomEndChange = onCustomEndChange,
+            onToggleMeal = onToggleExcludedMeal,
             onConfirm = onConfirmGenerate,
             onDismiss = onCloseGenerate,
         )
@@ -254,6 +259,17 @@ private fun ShoppingScreen(
             onNameChange = onManualNameChange,
             onConfirm = onConfirmManual,
             onDismiss = onCloseManual,
+        )
+    }
+
+    itemPendingDelete?.let { item ->
+        ConfirmDeleteDialog(
+            text = "Usunąć ${item.name} z listy zakupów?",
+            onConfirm = {
+                onRemoveItem(item.id)
+                itemPendingDelete = null
+            },
+            onDismiss = { itemPendingDelete = null },
         )
     }
 }
@@ -359,6 +375,7 @@ private fun GenerateDialog(
     onRangeChange: (ShoppingRange) -> Unit,
     onCustomStartChange: (LocalDate) -> Unit,
     onCustomEndChange: (LocalDate) -> Unit,
+    onToggleMeal: (Long) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -427,6 +444,39 @@ private fun GenerateDialog(
                             modifier = Modifier.weight(1f),
                         ) {
                             Text("Do: ${state.customEnd.format(CUSTOM_DATE_FORMATTER)}")
+                        }
+                    }
+                }
+
+                if (state.meals.isNotEmpty()) {
+                    Text(
+                        text = "Pomiń posiłki (odznacz, by nie dodawać składników):",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    state.meals.forEach { meal ->
+                        val included = meal.mealId !in state.excludedMealIds
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggleMeal(meal.mealId) }
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Checkbox(
+                                checked = included,
+                                onCheckedChange = { onToggleMeal(meal.mealId) },
+                            )
+                            Text(
+                                text = if (meal.occurrences > 1) {
+                                    "${meal.name} ×${meal.occurrences}"
+                                } else {
+                                    meal.name
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }

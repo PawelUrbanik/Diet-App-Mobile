@@ -82,6 +82,7 @@ import pl.pawel.diet_app_mobile.domain.model.MealPlan
 import pl.pawel.diet_app_mobile.domain.model.PlannedMeal
 import pl.pawel.diet_app_mobile.domain.model.WeekTemplate
 import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
+import pl.pawel.diet_app_mobile.ui.components.ConfirmDeleteDialog
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
@@ -218,6 +219,7 @@ private fun PlanScreen(
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { 7 })
     val snackbarHostState = remember { SnackbarHostState() }
     var overflowExpanded by remember { mutableStateOf(false) }
+    var plannedMealPendingDelete by remember { mutableStateOf<PlannedMeal?>(null) }
 
     LaunchedEffect(message) {
         message?.let {
@@ -305,7 +307,7 @@ private fun PlanScreen(
                     isToday = dayPlan.date == today,
                     onOpenAddSheet = onOpenAddSheet,
                     onOpenEditDialog = onOpenEditDialog,
-                    onSwipeRemove = onSwipeRemove,
+                    onRequestRemove = { plannedMealPendingDelete = it },
                     onCopyFromPreviousDay = onCopyFromPreviousDay,
                 )
             }
@@ -367,6 +369,17 @@ private fun PlanScreen(
             onNameChange = onSaveTemplateNameChange,
             onConfirm = onConfirmSaveTemplate,
             onDismiss = onCloseSaveTemplate,
+        )
+    }
+
+    plannedMealPendingDelete?.let { plannedMeal ->
+        ConfirmDeleteDialog(
+            text = "Usunąć ${plannedMeal.meal.name} z planu?",
+            onConfirm = {
+                onSwipeRemove(plannedMeal.id)
+                plannedMealPendingDelete = null
+            },
+            onDismiss = { plannedMealPendingDelete = null },
         )
     }
 }
@@ -631,7 +644,7 @@ private fun DayContent(
     isToday: Boolean,
     onOpenAddSheet: (LocalDate, String) -> Unit,
     onOpenEditDialog: (PlannedMeal) -> Unit,
-    onSwipeRemove: (Long) -> Unit,
+    onRequestRemove: (PlannedMeal) -> Unit,
     onCopyFromPreviousDay: (LocalDate, String) -> Unit,
 ) {
     LazyColumn(
@@ -650,7 +663,7 @@ private fun DayContent(
                 onAddClick = { onOpenAddSheet(dayPlan.date, category) },
                 onCopyFromPreviousDay = { onCopyFromPreviousDay(dayPlan.date, category) },
                 onMealClick = onOpenEditDialog,
-                onSwipeRemove = onSwipeRemove,
+                onRequestRemove = onRequestRemove,
             )
         }
     }
@@ -703,7 +716,7 @@ private fun CategorySection(
     onAddClick: () -> Unit,
     onCopyFromPreviousDay: () -> Unit,
     onMealClick: (PlannedMeal) -> Unit,
-    onSwipeRemove: (Long) -> Unit,
+    onRequestRemove: (PlannedMeal) -> Unit,
 ) {
     val categoryColor = mealCategoryColor(category)
     Card {
@@ -753,7 +766,7 @@ private fun CategorySection(
             if (plannedMeals.isNotEmpty()) {
                 HorizontalDivider()
                 plannedMeals.forEachIndexed { index, plannedMeal ->
-                    SwipeToDeleteContainer(onDeleteRequest = { onSwipeRemove(plannedMeal.id) }) {
+                    SwipeToDeleteContainer(onDeleteRequest = { onRequestRemove(plannedMeal) }) {
                         PlannedMealRow(
                             plannedMeal = plannedMeal,
                             onClick = { onMealClick(plannedMeal) },
