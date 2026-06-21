@@ -46,6 +46,11 @@ class MealSeeder @Inject constructor(
                                     newCategory = seedMeal.meal.category,
                                 )
                             }
+                            // Uzupełnij opis przygotowania dla posiłków zaseedowanych zanim
+                            // dodano instrukcje. Edytowane ręcznie opisy pozostają nietknięte.
+                            seedMeal.meal.description?.let { description ->
+                                mealDao.fillSeedDescriptionByName(seedMeal.meal.name, description)
+                            }
                             return@forEach
                         }
 
@@ -78,7 +83,7 @@ class MealSeeder @Inject constructor(
         return SeedMeal(
             meal = MealEntity(
                 name = mealName,
-                description = buildDescription(columns),
+                description = MealInstructions.forName(mealName) ?: buildDescription(columns),
                 category = category,
                 createdAt = timestamp,
                 updatedAt = timestamp,

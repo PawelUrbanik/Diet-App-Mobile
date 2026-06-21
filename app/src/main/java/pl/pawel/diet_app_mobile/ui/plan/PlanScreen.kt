@@ -947,7 +947,10 @@ private fun ServingsPickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(meal.name) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 Text(
                     text = "Liczba porcji",
                     style = MaterialTheme.typography.bodyMedium,
@@ -969,6 +972,19 @@ private fun ServingsPickerDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 NutritionMacroBars(nutrition = meal.nutrition.times(servings))
+                meal.description?.takeIf { it.isNotBlank() }?.let { description ->
+                    HorizontalDivider()
+                    Text(
+                        text = "Przygotowanie",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 errorMessage?.let {
                     Text(
                         text = it,

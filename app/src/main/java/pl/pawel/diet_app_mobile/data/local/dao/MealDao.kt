@@ -40,6 +40,13 @@ interface MealDao {
     )
     suspend fun reassignCategoryByName(name: String, previousCategory: String, newCategory: String)
 
+    @Query(
+        "UPDATE meals SET description = :description WHERE name = :name AND " +
+            "(description IS NULL OR description LIKE 'Porcje z importu%' OR " +
+            "description LIKE 'Czas przygotowania%')",
+    )
+    suspend fun fillSeedDescriptionByName(name: String, description: String)
+
     @Delete
     suspend fun deleteMeal(meal: MealEntity)
 
