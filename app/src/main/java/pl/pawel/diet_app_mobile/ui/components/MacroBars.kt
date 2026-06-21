@@ -1,5 +1,6 @@
 package pl.pawel.diet_app_mobile.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +75,11 @@ private fun MacroBar(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(44.dp),
         )
+        val targetFraction = (value / maxValue).toFloat().coerceIn(0f, 1f)
+        val animatedFraction by animateFloatAsState(
+            targetValue = targetFraction,
+            label = "macro_fill",
+        )
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -83,7 +90,7 @@ private fun MacroBar(
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction = (value / maxValue).toFloat().coerceIn(0f, 1f))
+                    .fillMaxWidth(fraction = animatedFraction)
                     .clip(RoundedCornerShape(50))
                     .background(color),
             )

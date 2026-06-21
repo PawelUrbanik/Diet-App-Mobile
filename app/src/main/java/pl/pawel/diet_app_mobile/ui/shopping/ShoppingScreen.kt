@@ -228,7 +228,10 @@ private fun ShoppingScreen(
                             )
                         }
                         items(items = group.items, key = { it.id }) { item ->
-                            SwipeToDeleteContainer(onDeleteRequest = { itemPendingDelete = item }) {
+                            SwipeToDeleteContainer(
+                                onDeleteRequest = { itemPendingDelete = item },
+                                modifier = Modifier.animateItem(),
+                            ) {
                                 ShoppingItemRow(
                                     item = item,
                                     onToggle = { onToggleChecked(item) },

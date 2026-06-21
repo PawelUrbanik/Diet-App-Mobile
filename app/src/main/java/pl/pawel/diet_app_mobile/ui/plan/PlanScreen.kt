@@ -57,6 +57,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -864,7 +865,7 @@ private fun CategorySection(
     onRequestRemove: (PlannedMeal) -> Unit,
 ) {
     val categoryColor = mealCategoryColor(category)
-    Card {
+    Card(modifier = Modifier.animateContentSize()) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Row(
                 modifier = Modifier

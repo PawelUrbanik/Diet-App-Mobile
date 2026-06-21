@@ -249,7 +249,10 @@ private fun ProductsListContent(
                 items = products,
                 key = { product -> product.id },
             ) { product ->
-                SwipeToDeleteContainer(onDeleteRequest = { onRequestDeleteProduct(product) }) {
+                SwipeToDeleteContainer(
+                    onDeleteRequest = { onRequestDeleteProduct(product) },
+                    modifier = Modifier.animateItem(),
+                ) {
                     ProductCard(
                         product = product,
                         onClick = { onProductClick(product) },

@@ -311,7 +311,10 @@ private fun MealsListContent(
             }
         } else {
             items(items = meals, key = { it.id }) { meal ->
-                SwipeToDeleteContainer(onDeleteRequest = { onRequestDeleteMeal(meal) }) {
+                SwipeToDeleteContainer(
+                    onDeleteRequest = { onRequestDeleteMeal(meal) },
+                    modifier = Modifier.animateItem(),
+                ) {
                     MealListCard(meal = meal, onEditClick = { onMealClick(meal) })
                 }
             }
