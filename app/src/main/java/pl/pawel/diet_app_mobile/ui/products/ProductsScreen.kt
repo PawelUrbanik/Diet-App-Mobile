@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import pl.pawel.diet_app_mobile.domain.model.NutritionSummary
 import pl.pawel.diet_app_mobile.domain.model.Product
@@ -63,6 +64,7 @@ private enum class ProductsNavTarget(val depth: Int) {
 @Composable
 fun ProductsRoute(
     viewModel: ProductsViewModel = hiltViewModel(),
+    listHeader: (@Composable () -> Unit)? = null,
 ) {
     val products by viewModel.products.collectAsState()
     val editorState by viewModel.editorState.collectAsState()
@@ -91,6 +93,7 @@ fun ProductsRoute(
         onRequestDeleteProduct = viewModel::requestDeleteProduct,
         onConfirmDeleteProduct = viewModel::confirmDeleteProduct,
         onCancelDeleteProduct = viewModel::cancelDeleteProduct,
+        listHeader = listHeader,
     )
 }
 
@@ -117,6 +120,7 @@ private fun ProductsScreen(
     onRequestDeleteProduct: (Product) -> Unit,
     onConfirmDeleteProduct: () -> Unit,
     onCancelDeleteProduct: () -> Unit,
+    listHeader: (@Composable () -> Unit)? = null,
 ) {
     productPendingDelete?.let { product ->
         AlertDialog(
@@ -130,6 +134,9 @@ private fun ProductsScreen(
 
     val navTarget = if (editorState != null) ProductsNavTarget.Editor else ProductsNavTarget.List
 
+    // Systemowy przycisk/gest Wstecz zamyka edytor, zamiast wychodzić z aplikacji.
+    BackHandler(enabled = editorState != null) { onCloseEditor() }
+
     val title = when {
         editorState != null && editorState.isEditing -> "Edycja produktu"
         editorState != null -> "Nowy produkt"
@@ -139,7 +146,13 @@ private fun ProductsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = title) },
+                title = {
+                    if (navTarget == ProductsNavTarget.List && listHeader != null) {
+                        listHeader()
+                    } else {
+                        Text(text = title)
+                    }
+                },
                 navigationIcon = {
                     if (editorState != null) {
                         IconButton(onClick = onCloseEditor) {

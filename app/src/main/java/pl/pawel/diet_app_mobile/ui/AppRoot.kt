@@ -4,13 +4,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.LocalGroceryStore
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.LocalGroceryStore
-import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -25,9 +23,8 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import pl.pawel.diet_app_mobile.ui.meals.MealsRoute
+import pl.pawel.diet_app_mobile.ui.library.LibraryRoute
 import pl.pawel.diet_app_mobile.ui.plan.PlanRoute
-import pl.pawel.diet_app_mobile.ui.products.ProductsRoute
 import pl.pawel.diet_app_mobile.ui.shopping.ShoppingRoute
 
 private val AppTabSaver: Saver<AppTab, String> =
@@ -49,10 +46,9 @@ fun AppRoot() {
         ) {
             stateHolder.SaveableStateProvider(selectedTab.name) {
                 when (selectedTab) {
-                    AppTab.Products -> ProductsRoute()
-                    AppTab.Meals -> MealsRoute()
                     AppTab.Plan -> PlanRoute()
                     AppTab.Shopping -> ShoppingRoute()
+                    AppTab.Library -> LibraryRoute()
                 }
             }
         }
@@ -80,16 +76,6 @@ private enum class AppTab(
     val icon: ImageVector,
     val selectedIcon: ImageVector,
 ) {
-    Products(
-        label = "Produkty",
-        icon = Icons.Outlined.LocalGroceryStore,
-        selectedIcon = Icons.Filled.LocalGroceryStore,
-    ),
-    Meals(
-        label = "Posiłki",
-        icon = Icons.Outlined.Restaurant,
-        selectedIcon = Icons.Filled.Restaurant,
-    ),
     Plan(
         label = "Plan",
         icon = Icons.Outlined.CalendarMonth,
@@ -99,5 +85,10 @@ private enum class AppTab(
         label = "Zakupy",
         icon = Icons.Outlined.ShoppingCart,
         selectedIcon = Icons.Filled.ShoppingCart,
+    ),
+    Library(
+        label = "Biblioteka",
+        icon = Icons.AutoMirrored.Outlined.MenuBook,
+        selectedIcon = Icons.AutoMirrored.Filled.MenuBook,
     ),
 }

@@ -87,6 +87,7 @@ private enum class MealsNavTarget(val depth: Int) {
 @Composable
 fun MealsRoute(
     viewModel: MealsViewModel = hiltViewModel(),
+    listHeader: (@Composable () -> Unit)? = null,
 ) {
     val meals by viewModel.meals.collectAsState()
     val query by viewModel.query.collectAsState()
@@ -130,6 +131,7 @@ fun MealsRoute(
         onRequestDeleteMeal = viewModel::requestDeleteMeal,
         onConfirmDeleteMeal = viewModel::confirmDeleteMeal,
         onCancelDeleteMeal = viewModel::cancelDeleteMeal,
+        listHeader = listHeader,
     )
 }
 
@@ -169,6 +171,7 @@ private fun MealsScreen(
     onRequestDeleteMeal: (Meal) -> Unit,
     onConfirmDeleteMeal: () -> Unit,
     onCancelDeleteMeal: () -> Unit,
+    listHeader: (@Composable () -> Unit)? = null,
 ) {
     mealPendingDelete?.let { meal ->
         AlertDialog(
@@ -208,7 +211,13 @@ private fun MealsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = {
+                    if (navTarget == MealsNavTarget.List && listHeader != null) {
+                        listHeader()
+                    } else {
+                        Text(title)
+                    }
+                },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
