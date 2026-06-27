@@ -40,6 +40,7 @@ class RoomMealPlanRepository @Inject constructor(
                     mealType = entity.mealType,
                     servings = entity.servings,
                     position = entity.position,
+                    skipped = entity.skipped,
                 )
             }
 
@@ -85,6 +86,10 @@ class RoomMealPlanRepository @Inject constructor(
 
     override suspend fun removePlannedMeal(plannedMealId: Long) {
         mealPlanDao.deletePlannedMealById(plannedMealId)
+    }
+
+    override suspend fun setSlotSkipped(date: LocalDate, mealType: String, skipped: Boolean) {
+        mealPlanDao.setSkippedForSlot(date.format(DATE_FORMATTER), mealType, skipped)
     }
 
     override suspend fun adjacentDaysWithSameMeal(mealId: Long, date: LocalDate): List<LocalDate> {

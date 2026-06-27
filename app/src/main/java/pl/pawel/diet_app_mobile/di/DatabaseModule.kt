@@ -18,6 +18,7 @@ import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MI
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_2_3
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_3_4
 import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_4_5
+import pl.pawel.diet_app_mobile.data.local.database.DietAppDatabase.Companion.MIGRATION_5_6
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -30,7 +31,7 @@ object DatabaseModule {
         context,
         DietAppDatabase::class.java,
         "diet_app.db",
-    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
         .build()
 
     @Provides

@@ -19,8 +19,9 @@ data class DayPlan(
     val plannedMeals: List<PlannedMeal>,
 ) {
     val nutrition: NutritionSummary
+        // Posiłki oznaczone jako „jem na mieście" nie liczą się do spożycia.
         get() = plannedMeals.fold(NutritionSummary()) { acc, planned ->
-            acc + planned.nutrition
+            if (planned.skipped) acc else acc + planned.nutrition
         }
 
     fun mealsForCategory(category: String): List<PlannedMeal> =
@@ -35,6 +36,7 @@ data class PlannedMeal(
     val mealType: String,
     val servings: Double,
     val position: Int,
+    val skipped: Boolean = false,
 ) {
     val nutrition: NutritionSummary
         get() = meal.nutrition.times(servings)

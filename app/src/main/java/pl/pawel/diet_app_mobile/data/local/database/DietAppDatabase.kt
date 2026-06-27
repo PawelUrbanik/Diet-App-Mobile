@@ -29,7 +29,7 @@ import pl.pawel.diet_app_mobile.data.local.entity.WeekTemplateSlotEntity
         WeekTemplateEntity::class,
         WeekTemplateSlotEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class DietAppDatabase : RoomDatabase() {
@@ -98,6 +98,16 @@ abstract class DietAppDatabase : RoomDatabase() {
                 db.execSQL(
                     "UPDATE `week_template_slots` SET `mealType` = 'Podwieczorek' " +
                         "WHERE `mealType` = 'Przekąska'",
+                )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Posiłki/sloty oznaczone jako „jem na mieście" — pomijane w zakupach i sumie.
+                db.execSQL(
+                    "ALTER TABLE `planned_meals` ADD COLUMN `skipped` " +
+                        "INTEGER NOT NULL DEFAULT 0",
                 )
             }
         }

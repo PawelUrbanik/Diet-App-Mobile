@@ -33,7 +33,10 @@ class RoomShoppingListRepository @Inject constructor(
         )
         if (plannedMeals.isEmpty()) return emptyList()
 
-        val occurrences: Map<Long, Int> = plannedMeals.groupingBy { it.mealId }.eachCount()
+        val occurrences: Map<Long, Int> = plannedMeals
+            .filterNot { it.skipped }
+            .groupingBy { it.mealId }
+            .eachCount()
         return occurrences.keys
             .mapNotNull { mealId -> mealRepository.observeMeal(mealId).first() }
             .map { meal -> PlannedMealSummary(meal.id, meal.name, occurrences[meal.id] ?: 0) }
@@ -58,6 +61,7 @@ class RoomShoppingListRepository @Inject constructor(
 
         val aggregated = LinkedHashMap<Long, AggregatedLine>()
         plannedMeals.forEach { plannedMeal ->
+            if (plannedMeal.skipped) return@forEach
             if (plannedMeal.mealId in excludedMealIds) return@forEach
             val meal = mealsById[plannedMeal.mealId] ?: return@forEach
             meal.ingredients.forEach { ingredient ->

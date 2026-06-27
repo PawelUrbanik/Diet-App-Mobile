@@ -36,4 +36,5 @@ data class PlannedMealEntity(
     val mealType: String,
     val servings: Double,
     val position: Int,
+    val skipped: Boolean = false,
 )

@@ -24,6 +24,12 @@ interface MealPlanRepository {
     suspend fun removePlannedMeal(plannedMealId: Long)
 
     /**
+     * Oznacza wszystkie posiłki w slocie ([date] + [mealType]) jako „jem na mieście"
+     * (pomijane w liście zakupów i w sumie kalorii) albo cofa to oznaczenie.
+     */
+    suspend fun setSlotSkipped(date: LocalDate, mealType: String, skipped: Boolean)
+
+    /**
      * Zwraca sąsiednie dni (spośród [date] − 1 oraz [date] + 1), w których w dowolnym slocie
      * zaplanowano posiłek o id [mealId]. Działa również przez granicę tygodnia.
      */

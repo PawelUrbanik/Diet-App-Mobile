@@ -66,6 +66,12 @@ interface MealPlanDao {
     @Query("UPDATE planned_meals SET servings = :servings WHERE id = :plannedMealId")
     suspend fun updateServings(plannedMealId: Long, servings: Double)
 
+    @Query(
+        "UPDATE planned_meals SET skipped = :skipped " +
+            "WHERE date = :date AND mealType = :mealType",
+    )
+    suspend fun setSkippedForSlot(date: String, mealType: String, skipped: Boolean)
+
     @Query("UPDATE planned_meals SET mealId = :newMealId, servings = :servings WHERE id = :plannedMealId")
     suspend fun updateMealAndServings(plannedMealId: Long, newMealId: Long, servings: Double)
 

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -73,6 +74,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -178,6 +180,7 @@ fun PlanRoute(
         onSwapFromEdit = viewModel::openSwapFromEdit,
         onSwipeRemove = viewModel::removePlannedMeal,
         onCopyFromPreviousDay = viewModel::copyFromPreviousDay,
+        onToggleSlotSkipped = viewModel::onToggleSlotSkipped,
     )
 }
 
@@ -234,6 +237,7 @@ private fun PlanScreen(
     onSwapFromEdit: () -> Unit,
     onSwipeRemove: (Long) -> Unit,
     onCopyFromPreviousDay: (LocalDate, String) -> Unit,
+    onToggleSlotSkipped: (LocalDate, String, Boolean) -> Unit,
 ) {
     val today = remember { LocalDate.now() }
     val initialPage = if (today in weekStartDate..weekStartDate.plusDays(6)) {
@@ -358,6 +362,7 @@ private fun PlanScreen(
                     onOpenEditDialog = onOpenEditDialog,
                     onRequestRemove = { plannedMealPendingDelete = it },
                     onCopyFromPreviousDay = onCopyFromPreviousDay,
+                    onToggleSlotSkipped = onToggleSlotSkipped,
                 )
             }
         }
@@ -793,6 +798,7 @@ private fun DayContent(
     onOpenEditDialog: (PlannedMeal) -> Unit,
     onRequestRemove: (PlannedMeal) -> Unit,
     onCopyFromPreviousDay: (LocalDate, String) -> Unit,
+    onToggleSlotSkipped: (LocalDate, String, Boolean) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -811,6 +817,7 @@ private fun DayContent(
                 onCopyFromPreviousDay = { onCopyFromPreviousDay(dayPlan.date, category) },
                 onMealClick = onOpenEditDialog,
                 onRequestRemove = onRequestRemove,
+                onToggleSlotSkipped = onToggleSlotSkipped,
             )
         }
     }
@@ -864,8 +871,11 @@ private fun CategorySection(
     onCopyFromPreviousDay: () -> Unit,
     onMealClick: (PlannedMeal) -> Unit,
     onRequestRemove: (PlannedMeal) -> Unit,
+    onToggleSlotSkipped: (LocalDate, String, Boolean) -> Unit,
 ) {
     val categoryColor = mealCategoryColor(category)
+    val slotSkipped = plannedMeals.isNotEmpty() && plannedMeals.all { it.skipped }
+    val headerColor = if (slotSkipped) MaterialTheme.colorScheme.onSurfaceVariant else categoryColor
     Card(modifier = Modifier.animateContentSize()) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Row(
@@ -883,15 +893,33 @@ private fun CategorySection(
                     Icon(
                         imageVector = mealCategoryIcon(category),
                         contentDescription = null,
-                        tint = categoryColor,
+                        tint = headerColor,
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
                         text = category,
                         style = MaterialTheme.typography.titleSmall,
-                        color = categoryColor,
+                        color = headerColor,
                         fontWeight = FontWeight.SemiBold,
                     )
+                }
+                if (plannedMeals.isNotEmpty()) {
+                    IconButton(onClick = { onToggleSlotSkipped(date, category, !slotSkipped) }) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = if (slotSkipped) {
+                                "Cofnij: jem na mieście"
+                            } else {
+                                "Jem na mieście"
+                            },
+                            modifier = Modifier.size(18.dp),
+                            tint = if (slotSkipped) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
                 }
                 IconButton(onClick = onCopyFromPreviousDay) {
                     Icon(
@@ -910,6 +938,28 @@ private fun CategorySection(
                     Text(" Dodaj")
                 }
             }
+            if (slotSkipped) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer)
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Text(
+                        text = "Jem na mieście",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
             if (plannedMeals.isNotEmpty()) {
                 HorizontalDivider()
                 plannedMeals.forEachIndexed { index, plannedMeal ->
@@ -917,6 +967,7 @@ private fun CategorySection(
                         SwipeToDeleteContainer(onDeleteRequest = { onRequestRemove(plannedMeal) }) {
                             PlannedMealRow(
                                 plannedMeal = plannedMeal,
+                                skipped = plannedMeal.skipped,
                                 onClick = { onMealClick(plannedMeal) },
                             )
                         }
@@ -929,7 +980,12 @@ private fun CategorySection(
 }
 
 @Composable
-private fun PlannedMealRow(plannedMeal: PlannedMeal, onClick: () -> Unit) {
+private fun PlannedMealRow(
+    plannedMeal: PlannedMeal,
+    skipped: Boolean,
+    onClick: () -> Unit,
+) {
+    val decoration = if (skipped) TextDecoration.LineThrough else null
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -943,11 +999,18 @@ private fun PlannedMealRow(plannedMeal: PlannedMeal, onClick: () -> Unit) {
                 text = plannedMeal.meal.name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
+                textDecoration = decoration,
+                color = if (skipped) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    Color.Unspecified
+                },
             )
             Text(
                 text = "${plannedMeal.servings.formatServings()} × porcji · ${plannedMeal.nutrition.calories.formatKcal()} kcal",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textDecoration = decoration,
             )
         }
     }

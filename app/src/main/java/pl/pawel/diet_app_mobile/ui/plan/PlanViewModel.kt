@@ -270,6 +270,12 @@ class PlanViewModel @Inject constructor(
         }
     }
 
+    fun onToggleSlotSkipped(date: LocalDate, mealType: String, skipped: Boolean) {
+        viewModelScope.launch {
+            runCatching { mealPlanRepository.setSlotSkipped(date, mealType, skipped) }
+        }
+    }
+
     fun copyFromPreviousDay(date: LocalDate, mealType: String) {
         val sourceDate = date.minusDays(1)
         val targetWeekStart = date.mondayOfWeek()
