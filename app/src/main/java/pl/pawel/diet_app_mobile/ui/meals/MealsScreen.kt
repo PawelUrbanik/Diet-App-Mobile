@@ -1,5 +1,6 @@
 package pl.pawel.diet_app_mobile.ui.meals
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -200,6 +201,9 @@ private fun MealsScreen(
         MealsNavTarget.EditMeal -> onBackToList
         MealsNavTarget.AddIngredient, MealsNavTarget.EditIngredient -> onCloseIngredientEditor
     }
+
+    // Systemowy przycisk/gest Wstecz cofa w przepływie ekranu, zamiast zamykać aplikację.
+    BackHandler(enabled = onBack != null) { onBack?.invoke() }
 
     Scaffold(
         topBar = {

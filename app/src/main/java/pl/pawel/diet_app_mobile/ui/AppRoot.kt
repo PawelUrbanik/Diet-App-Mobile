@@ -19,7 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,9 +30,16 @@ import pl.pawel.diet_app_mobile.ui.plan.PlanRoute
 import pl.pawel.diet_app_mobile.ui.products.ProductsRoute
 import pl.pawel.diet_app_mobile.ui.shopping.ShoppingRoute
 
+private val AppTabSaver: Saver<AppTab, String> =
+    Saver(save = { it.name }, restore = { AppTab.valueOf(it) })
+
 @Composable
 fun AppRoot() {
-    var selectedTab by remember { mutableStateOf(AppTab.Products) }
+    var selectedTab by rememberSaveable(stateSaver = AppTabSaver) {
+        mutableStateOf(AppTab.Plan)
+    }
+    // Zachowuje stan (np. pozycję przewijania) każdej zakładki przy przełączaniu.
+    val stateHolder = rememberSaveableStateHolder()
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -38,11 +47,13 @@ fun AppRoot() {
                 .weight(1f)
                 .fillMaxSize(),
         ) {
-            when (selectedTab) {
-                AppTab.Products -> ProductsRoute()
-                AppTab.Meals -> MealsRoute()
-                AppTab.Plan -> PlanRoute()
-                AppTab.Shopping -> ShoppingRoute()
+            stateHolder.SaveableStateProvider(selectedTab.name) {
+                when (selectedTab) {
+                    AppTab.Products -> ProductsRoute()
+                    AppTab.Meals -> MealsRoute()
+                    AppTab.Plan -> PlanRoute()
+                    AppTab.Shopping -> ShoppingRoute()
+                }
             }
         }
         NavigationBar {
