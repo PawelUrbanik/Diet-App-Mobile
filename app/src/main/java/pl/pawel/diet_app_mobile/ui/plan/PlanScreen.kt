@@ -60,6 +60,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -912,11 +913,13 @@ private fun CategorySection(
             if (plannedMeals.isNotEmpty()) {
                 HorizontalDivider()
                 plannedMeals.forEachIndexed { index, plannedMeal ->
-                    SwipeToDeleteContainer(onDeleteRequest = { onRequestRemove(plannedMeal) }) {
-                        PlannedMealRow(
-                            plannedMeal = plannedMeal,
-                            onClick = { onMealClick(plannedMeal) },
-                        )
+                    key(plannedMeal.id) {
+                        SwipeToDeleteContainer(onDeleteRequest = { onRequestRemove(plannedMeal) }) {
+                            PlannedMealRow(
+                                plannedMeal = plannedMeal,
+                                onClick = { onMealClick(plannedMeal) },
+                            )
+                        }
                     }
                     if (index < plannedMeals.lastIndex) HorizontalDivider()
                 }
