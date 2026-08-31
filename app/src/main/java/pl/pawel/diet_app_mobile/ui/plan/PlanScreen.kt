@@ -876,12 +876,13 @@ private fun CategorySection(
     val categoryColor = mealCategoryColor(category)
     val slotSkipped = plannedMeals.isNotEmpty() && plannedMeals.all { it.skipped }
     val headerColor = if (slotSkipped) MaterialTheme.colorScheme.onSurfaceVariant else categoryColor
+    var menuExpanded by remember { mutableStateOf(false) }
     Card(modifier = Modifier.animateContentSize()) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -903,32 +904,6 @@ private fun CategorySection(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
-                if (plannedMeals.isNotEmpty()) {
-                    IconButton(onClick = { onToggleSlotSkipped(date, category, !slotSkipped) }) {
-                        Icon(
-                            imageVector = Icons.Default.Restaurant,
-                            contentDescription = if (slotSkipped) {
-                                "Cofnij: jem na mieście"
-                            } else {
-                                "Jem na mieście"
-                            },
-                            modifier = Modifier.size(18.dp),
-                            tint = if (slotSkipped) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
-                IconButton(onClick = onCopyFromPreviousDay) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Kopiuj z wczoraj",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 TextButton(onClick = onAddClick) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -936,6 +911,62 @@ private fun CategorySection(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(" Dodaj")
+                }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Więcej opcji",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Kopiuj z wczoraj") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onCopyFromPreviousDay()
+                            },
+                        )
+                        if (plannedMeals.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (slotSkipped) {
+                                            "Cofnij: jem na mieście"
+                                        } else {
+                                            "Jem na mieście"
+                                        },
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Restaurant,
+                                        contentDescription = null,
+                                        tint = if (slotSkipped) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            androidx.compose.ui.graphics.Color.Unspecified
+                                        },
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onToggleSlotSkipped(date, category, !slotSkipped)
+                                },
+                            )
+                        }
+                    }
                 }
             }
             if (slotSkipped) {
