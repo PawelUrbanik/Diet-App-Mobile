@@ -541,5 +541,103 @@ internal object PredefinedWeekTemplates {
             ),
         ),
 
+        PredefinedTemplateConfig(
+            id = "predef:latwa-dieta-t1",
+            name = "Łatwa dieta - Tydzień 1",
+            rawSlots = listOf(
+                // Poniedziałek
+                PredefinedSlotConfig(MON, BREAKFAST, "OMLET SERNIKOWY ZE SKYREM I MALINAMI"),
+                PredefinedSlotConfig(MON, SECOND_BREAKFAST, "KANAPKI Z POLĘDWICĄ SOPOCKĄ"),
+                PredefinedSlotConfig(MON, LUNCH, "CHILI CON CARNE Z INDYKA Z RYŻEM"),
+                PredefinedSlotConfig(MON, SNACK, "KOKTAJL BIAŁKOWY BANAN I MASŁO ORZECHOWE"),
+                PredefinedSlotConfig(MON, DINNER, "TOSTY Z JAJKIEM, AWOKADO I SZYNKĄ"),
+                // Wtorek
+                PredefinedSlotConfig(TUE, BREAKFAST, "OWSIANKA Z ODŻYWKĄ BIAŁKOWĄ (BANAN I ORZECHY)"),
+                PredefinedSlotConfig(TUE, SECOND_BREAKFAST, "TORTILLA Z HUMMUSEM I SZYNKĄ DROBIOWĄ"),
+                PredefinedSlotConfig(TUE, LUNCH, "CHILI CON CARNE Z INDYKA Z RYŻEM"),
+                PredefinedSlotConfig(TUE, SNACK, "SKYR Z JABŁKIEM"),
+                PredefinedSlotConfig(TUE, DINNER, "SAŁATKA GRECKA Z KURCZAKIEM"),
+                // Środa
+                PredefinedSlotConfig(WED, BREAKFAST, "JAJECZNICA Z TWAROGIEM I SZPINAKIEM"),
+                PredefinedSlotConfig(WED, SECOND_BREAKFAST, "BIAŁKOWE TIRAMISU ZE SKYREM"),
+                PredefinedSlotConfig(WED, LUNCH, "KURCZAK GYROS Z KUSKUSEM I SOSEM CZOSNKOWYM"),
+                PredefinedSlotConfig(WED, SNACK, "HUMMUS Z WARZYWAMI I PIECZYWEM"),
+                PredefinedSlotConfig(WED, DINNER, "SYRNIKI Z DŻEMEM TRUSKAWKOWYM"),
+                // Czwartek
+                PredefinedSlotConfig(THU, BREAKFAST, "PANCAKES Z SERKA WIEJSKIEGO Z BORÓWKAMI"),
+                PredefinedSlotConfig(THU, SECOND_BREAKFAST, "KANAPKI Z PASTĄ Z TUŃCZYKA I JAJKA"),
+                PredefinedSlotConfig(THU, LUNCH, "MAKARON Z KURCZAKIEM I BROKUŁEM"),
+                PredefinedSlotConfig(THU, SNACK, "SKYR Z TRUSKAWKAMI"),
+                PredefinedSlotConfig(THU, DINNER, "QUESADILLA Z KURCZAKIEM I FASOLĄ"),
+                // Piątek
+                PredefinedSlotConfig(FRI, BREAKFAST, "OWSIANKA Z ODŻYWKĄ BIAŁKOWĄ (MALINY)"),
+                PredefinedSlotConfig(FRI, SECOND_BREAKFAST, "TORTILLA Z SZYNKĄ, SEREM ŻÓŁTYM I SAŁATĄ LODOWĄ"),
+                PredefinedSlotConfig(FRI, LUNCH, "DORSZ Z ZIEMNIAKAMI I MIZERIĄ"),
+                PredefinedSlotConfig(FRI, SNACK, "KOKTAJL KEFIR Z MALINAMI I BANANEM"),
+                PredefinedSlotConfig(FRI, DINNER, "TWAROŻEK Z TRUSKAWKAMI I ORZECHAMI"),
+                // Sobota
+                PredefinedSlotConfig(SAT, BREAKFAST, "SZAKSZUKA Z FETĄ"),
+                PredefinedSlotConfig(SAT, SECOND_BREAKFAST, "KANAPKI Z SEREM ŻÓŁTYM I POLĘDWICĄ"),
+                PredefinedSlotConfig(SAT, LUNCH, "KURCZAK STIR-FRY Z RYŻEM I WARZYWAMI"),
+                PredefinedSlotConfig(SAT, SNACK, "SKYR Z BORÓWKAMI I PŁATKAMI MIGDAŁOWYMI"),
+                PredefinedSlotConfig(SAT, DINNER, "PIZZA NA SPODZIE Z TORTILLI"),
+                // Niedziela
+                PredefinedSlotConfig(SUN, BREAKFAST, "WRAP PIZZA Z SERKIEM WIEJSKIM I SZYNKĄ"),
+                PredefinedSlotConfig(SUN, SECOND_BREAKFAST, "SKYR + PŁATKI + KAKAO + BANAN"),
+                PredefinedSlotConfig(SUN, LUNCH, "KURCZAK Z MOZZARELLĄ, BAZYLIĄ I POMIDOREM"),
+                PredefinedSlotConfig(SUN, SNACK, "ORZECHOWY SEREK WIEJSKI Z WINOGRONAMI"),
+                PredefinedSlotConfig(SUN, DINNER, "OWSIANKA Z ODŻYWKĄ BIAŁKOWĄ (BANAN)"),
+            ),
+        ),
+
+        PredefinedTemplateConfig(
+            id = "predef:latwa-dieta-t2",
+            name = "Łatwa dieta - Tydzień 2",
+            rawSlots = listOf(
+                // Poniedziałek
+                PredefinedSlotConfig(MON, BREAKFAST, "PANCAKES Z SERKA WIEJSKIEGO Z BORÓWKAMI"),
+                PredefinedSlotConfig(MON, SECOND_BREAKFAST, "KANAPKI Z PASTĄ Z TUŃCZYKA I JAJKA"),
+                PredefinedSlotConfig(MON, LUNCH, "INDYK Z CIECIERZYCĄ W SOSIE CURRY Z RYŻEM"),
+                PredefinedSlotConfig(MON, SNACK, "SKYR Z TRUSKAWKAMI"),
+                PredefinedSlotConfig(MON, DINNER, "OMLET Z PIECZARKAMI I POLĘDWICĄ"),
+                // Wtorek
+                PredefinedSlotConfig(TUE, BREAKFAST, "OWSIANKA Z ODŻYWKĄ BIAŁKOWĄ (MOCNA ŻURAWINA)"),
+                PredefinedSlotConfig(TUE, SECOND_BREAKFAST, "KANAPKI Z POLĘDWICĄ SOPOCKĄ"),
+                PredefinedSlotConfig(TUE, LUNCH, "INDYK Z CIECIERZYCĄ W SOSIE CURRY Z RYŻEM"),
+                PredefinedSlotConfig(TUE, SNACK, "HUMMUS Z WARZYWAMI I PIECZYWEM"),
+                PredefinedSlotConfig(TUE, DINNER, "TWAROŻEK Z TRUSKAWKAMI I ORZECHAMI"),
+                // Środa
+                PredefinedSlotConfig(WED, BREAKFAST, "WRAP PIZZA Z SERKIEM WIEJSKIM I SZYNKĄ"),
+                PredefinedSlotConfig(WED, SECOND_BREAKFAST, "KOKTAJL KEFIR Z MALINAMI I BANANEM"),
+                PredefinedSlotConfig(WED, LUNCH, "MAKARON Z TUŃCZYKIEM I POMIDORAMI"),
+                PredefinedSlotConfig(WED, SNACK, "TWARÓG Z BANANEM"),
+                PredefinedSlotConfig(WED, DINNER, "SAŁATKA GRECKA Z KURCZAKIEM"),
+                // Czwartek
+                PredefinedSlotConfig(THU, BREAKFAST, "JAJECZNICA Z POMIDORAMI I CHLEBEM ŻYTNIM"),
+                PredefinedSlotConfig(THU, SECOND_BREAKFAST, "BIAŁKOWE TIRAMISU ZE SKYREM"),
+                PredefinedSlotConfig(THU, LUNCH, "SAŁATKA Z KASZĄ BULGUR, TUŃCZYKIEM I WARZYWAMI"),
+                PredefinedSlotConfig(THU, SNACK, "KOKTAJL BIAŁKOWY BANAN I MASŁO ORZECHOWE"),
+                PredefinedSlotConfig(THU, DINNER, "QUESADILLA Z KURCZAKIEM I FASOLĄ"),
+                // Piątek
+                PredefinedSlotConfig(FRI, BREAKFAST, "OMLET SERNIKOWY ZE SKYREM I MALINAMI"),
+                PredefinedSlotConfig(FRI, SECOND_BREAKFAST, "TORTILLA Z HUMMUSEM I SZYNKĄ DROBIOWĄ"),
+                PredefinedSlotConfig(FRI, LUNCH, "KURCZAK GYROS Z KUSKUSEM I SOSEM CZOSNKOWYM"),
+                PredefinedSlotConfig(FRI, SNACK, "ORZECHOWY SEREK WIEJSKI Z WINOGRONAMI"),
+                PredefinedSlotConfig(FRI, DINNER, "SAŁATKA GRECKA Z KURCZAKIEM"),
+                // Sobota
+                PredefinedSlotConfig(SAT, BREAKFAST, "OWSIANKA Z ODŻYWKĄ BIAŁKOWĄ (BANAN I ORZECHY)"),
+                PredefinedSlotConfig(SAT, SECOND_BREAKFAST, "TOSTY Z MOZZARELLĄ I SZYNKĄ Z PIERSI KURCZAKA"),
+                PredefinedSlotConfig(SAT, LUNCH, "MAKARON Z PESTO I KURCZAKIEM"),
+                PredefinedSlotConfig(SAT, SNACK, "SEREK WIEJSKI Z BAKALIAMI I ORZECHAMI LASKOWYMI"),
+                PredefinedSlotConfig(SAT, DINNER, "TOSTY Z JAJKIEM, AWOKADO I SZYNKĄ"),
+                // Niedziela
+                PredefinedSlotConfig(SUN, BREAKFAST, "SZAKSZUKA Z FETĄ"),
+                PredefinedSlotConfig(SUN, SECOND_BREAKFAST, "SKYR + PŁATKI + KAKAO + BANAN"),
+                PredefinedSlotConfig(SUN, LUNCH, "KURCZAK STIR-FRY Z RYŻEM I WARZYWAMI"),
+                PredefinedSlotConfig(SUN, SNACK, "SKYR Z BORÓWKAMI I PŁATKAMI MIGDAŁOWYMI"),
+                PredefinedSlotConfig(SUN, DINNER, "KANAPKI Z TWAROŻKIEM SZCZYPIOREK I RZODKIEWKA"),
+            ),
+        ),
+
     )
 }

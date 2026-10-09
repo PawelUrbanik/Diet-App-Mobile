@@ -1,7 +1,7 @@
 package pl.pawel.diet_app_mobile.data.local.seed
 
 /**
- * Opisy przygotowania posiłków pochodzących z jadłospisów Katarzyny Koćwin (Miesiąc 1–4).
+
  * Klucz: nazwa posiłku (porównywana bez wielkości liter i białych znaków).
  */
 internal object MealInstructions {
@@ -175,5 +175,49 @@ internal object MealInstructions {
             "Wszystkie składniki zblenduj.",
         "ŁOSOŚ Z BATATAMI" to
             "Łososia przypraw solą i pieprzem, skrop sokiem z cytryny i odstaw na 30 min. Bataty pokrój na frytki, skrop oliwą i piecz w 220°C. Po 10 min dodaj łososia skórką do dołu i piecz jeszcze ok. 20 min.",
+
+        // ——— Łatwa dieta (tydzień 1–2) ———
+        "OMLET SERNIKOWY ZE SKYREM I MALINAMI" to
+            "Jajka zmiksuj ze 100 g skyru, mąką, proszkiem do pieczenia i ksylitolem. Wylej na rozgrzaną, lekko natłuszczoną patelnię i smaż pod przykryciem ok. 4 min, przewróć i smaż jeszcze minutę. Podawaj z resztą skyru i malinami.",
+        "PANCAKES Z SERKA WIEJSKIEGO Z BORÓWKAMI" to
+            "Serek wiejski, jajko, płatki owsiane i proszek do pieczenia zblenduj na gładką masę. Smaż małe placuszki na lekko natłuszczonej patelni po ok. 2 min z każdej strony. Podawaj ze skyrem i borówkami.",
+        "JAJECZNICA Z TWAROGIEM I SZPINAKIEM" to
+            "Na oliwie podsmaż szpinak, aż zwiędnie. Jajka roztrzep z pokruszonym twarogiem, wlej na patelnię i mieszaj 2–3 min. Podawaj z chlebem i pomidorem.",
+        "WRAP PIZZA Z SERKIEM WIEJSKIM I SZYNKĄ" to
+            "Tortillę posmaruj koncentratem, połóż serek wiejski, szynkę, pomidor i startą mozzarellę, posyp ziołami. Złóż na pół i podpiecz na suchej patelni po 2–3 min z każdej strony. Podawaj z rukolą.",
+        "SZAKSZUKA Z FETĄ" to
+            "Na oliwie zeszklij cebulę z czosnkiem, dodaj pokrojoną paprykę i pomidory z puszki, duś 5 min. Zrób w sosie wgłębienia, wbij jajka i gotuj pod przykryciem 5–6 min. Posyp pokruszoną fetą, podawaj z pieczywem.",
+        "BIAŁKOWE TIRAMISU ZE SKYREM" to
+            "Skyr zmiksuj z serkiem wiejskim i bananem. W pojemniku układaj warstwy: pokruszone herbatniki, krem, owoce. Na wierzch przesiej kakao. Można przygotować wieczorem.",
+        "TORTILLA Z HUMMUSEM I SZYNKĄ DROBIOWĄ" to
+            "Tortillę posmaruj hummusem, ułóż szynkę, sałatę i pokrojone w paski warzywa. Zwiń ciasno i przekrój na pół.",
+        "KANAPKI Z PASTĄ Z TUŃCZYKA I JAJKA" to
+            "Odsączonego tuńczyka rozgnieć widelcem z posiekanym jajkiem, jogurtem, kukurydzą i szczypiorkiem, dopraw solą i pieprzem. Nałóż na pieczywo, podawaj z ogórkiem.",
+        "KURCZAK GYROS Z KUSKUSEM I SOSEM CZOSNKOWYM" to
+            "Kurczaka pokrój w paski, przypraw papryką, solą i pieprzem, usmaż na oleju ok. 7 min. Kuskus zalej wrzątkiem 1:1,5 i przykryj na 5 min. Jogurt wymieszaj z przeciśniętym czosnkiem. Podawaj z kuskusem, warzywami i sosem.",
+        "KURCZAK STIR-FRY Z RYŻEM I WARZYWAMI" to
+            "Ugotuj ryż. Kurczaka pokrój w kostkę i obsmaż na mocno rozgrzanym oleju. Dodaj czosnek i mrożone warzywa, smaż 5–6 min. Wlej sos sojowy z miodem, wymieszaj i podawaj z ryżem.",
+        "MAKARON Z TUŃCZYKIEM I POMIDORAMI" to
+            "Ugotuj makaron. Na oliwie zeszklij cebulę, wlej passatę i gotuj 5 min. Dodaj odsączonego tuńczyka, dopraw i wymieszaj z makaronem. Posyp parmezanem i bazylią.",
+        "CHILI CON CARNE Z INDYKA Z RYŻEM" to
+            "Na oleju podsmaż cebulę i mięso, aż się zetnie. Dodaj paprykę, pomidory, przyprawy i duś 10 min. Wmieszaj odsączoną fasolę i kukurydzę, podgrzej. Podawaj z ryżem. Najlepiej ugotować od razu na 2 dni.",
+        "DORSZ Z ZIEMNIAKAMI I MIZERIĄ" to
+            "Ugotuj ziemniaki. Dorsza osusz, przypraw solą, pieprzem i sokiem z cytryny, usmaż na oleju po 3–4 min z każdej strony. Ogórka pokrój w plasterki, wymieszaj z jogurtem i koperkiem.",
+        "INDYK Z CIECIERZYCĄ W SOSIE CURRY Z RYŻEM" to
+            "Ugotuj ryż. Indyka pokrój w kostkę, obsmaż na oleju z curry. Dodaj pomidory i odsączoną ciecierzycę, duś 8 min. Na koniec wmieszaj szpinak i zdejmij z ognia, dodaj jogurt. Dobre do ugotowania na 2 dni.",
+        "SAŁATKA Z KASZĄ BULGUR, TUŃCZYKIEM I WARZYWAMI" to
+            "Ugotuj kaszę i ostudź. Wymieszaj z pokrojonymi warzywami, sałatą i odsączonym tuńczykiem. Polej sosem z oliwy, musztardy i soku z cytryny. Dobrze znosi przechowywanie w pudełku.",
+        "SKYR Z BORÓWKAMI I PŁATKAMI MIGDAŁOWYMI" to
+            "Skyr przełóż do miseczki, dodaj borówki, polej miodem i posyp płatkami migdałowymi.",
+        "HUMMUS Z WARZYWAMI I PIECZYWEM" to
+            "Warzywa pokrój w słupki i maczaj w hummusie. Podawaj z kromką pieczywa.",
+        "KOKTAJL BIAŁKOWY BANAN I MASŁO ORZECHOWE" to
+            "Wszystkie składniki zblenduj na gładko.",
+        "SAŁATKA GRECKA Z KURCZAKIEM" to
+            "Kurczaka przypraw ziołami i usmaż na oleju, pokrój w paski. Warzywa pokrój w kostkę, wymieszaj z sałatą, pokruszoną fetą i oliwą. Dodaj kurczaka, podawaj z pieczywem.",
+        "TOSTY Z JAJKIEM, AWOKADO I SZYNKĄ" to
+            "Pieczywo opiecz w tosterze. Posmaruj rozgniecionym awokado, ułóż szynkę, plastry jajek i pomidora. Dopraw solą i pieprzem.",
+        "QUESADILLA Z KURCZAKIEM I FASOLĄ" to
+            "Kurczaka pokrój drobno i usmaż na oleju. Na tortilli rozłóż kurczaka, fasolę, kukurydzę, paprykę i startą mozzarellę, przykryj drugą tortillą. Podpiecz na suchej patelni po 2–3 min z każdej strony, pokrój w trójkąty.",
     )
 }
