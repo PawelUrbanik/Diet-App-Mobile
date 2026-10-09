@@ -94,12 +94,8 @@ import pl.pawel.diet_app_mobile.ui.components.ConfirmDeleteDialog
 import pl.pawel.diet_app_mobile.ui.components.QrCodeImage
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
+import pl.pawel.diet_app_mobile.ui.components.mealCategoryColor
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
-import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
-import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
-import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
-import pl.pawel.diet_app_mobile.ui.theme.MealColorPodwieczorek
-import pl.pawel.diet_app_mobile.ui.theme.MealColorSniadanie
 
 private val POLISH_LOCALE: Locale = Locale.forLanguageTag("pl")
 private val DAY_LABEL_FORMATTER: DateTimeFormatter =
@@ -113,6 +109,7 @@ private val WEEK_RANGE_FORMATTER: DateTimeFormatter =
 
 @Composable
 fun PlanRoute(
+    onOpenSettings: () -> Unit,
     viewModel: PlanViewModel = hiltViewModel(),
 ) {
     val plan by viewModel.plan.collectAsState()
@@ -181,6 +178,7 @@ fun PlanRoute(
         onSwipeRemove = viewModel::removePlannedMeal,
         onCopyFromPreviousDay = viewModel::copyFromPreviousDay,
         onToggleSlotSkipped = viewModel::onToggleSlotSkipped,
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -238,6 +236,7 @@ private fun PlanScreen(
     onSwipeRemove: (Long) -> Unit,
     onCopyFromPreviousDay: (LocalDate, String) -> Unit,
     onToggleSlotSkipped: (LocalDate, String, Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val today = remember { LocalDate.now() }
     val initialPage = if (today in weekStartDate..weekStartDate.plusDays(6)) {
@@ -319,6 +318,14 @@ private fun PlanScreen(
                                         .setOrientationLocked(false)
                                         .setPrompt("Zeskanuj kod planu"),
                                 )
+                            },
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("Ustawienia") },
+                            onClick = {
+                                overflowExpanded = false
+                                onOpenSettings()
                             },
                         )
                     }
@@ -1404,15 +1411,6 @@ private fun MealPicker(
             if (index < meals.lastIndex) HorizontalDivider()
         }
     }
-}
-
-private fun mealCategoryColor(category: String): Color = when (category) {
-    "Śniadanie" -> MealColorSniadanie
-    "Drugie śniadanie" -> MealColorDrugieSniadanie
-    "Obiad" -> MealColorObiad
-    "Kolacja" -> MealColorKolacja
-    "Podwieczorek" -> MealColorPodwieczorek
-    else -> MealColorObiad
 }
 
 private fun Double.formatKcal(): String =

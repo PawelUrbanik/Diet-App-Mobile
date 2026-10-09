@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import pl.pawel.diet_app_mobile.ui.library.LibraryRoute
 import pl.pawel.diet_app_mobile.ui.plan.PlanRoute
+import pl.pawel.diet_app_mobile.ui.settings.SettingsRoute
 import pl.pawel.diet_app_mobile.ui.shopping.ShoppingRoute
 
 private val AppTabSaver: Saver<AppTab, String> =
@@ -35,8 +36,14 @@ fun AppRoot() {
     var selectedTab by rememberSaveable(stateSaver = AppTabSaver) {
         mutableStateOf(AppTab.Plan)
     }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
     // Zachowuje stan (np. pozycję przewijania) każdej zakładki przy przełączaniu.
     val stateHolder = rememberSaveableStateHolder()
+
+    if (showSettings) {
+        SettingsRoute(onBack = { showSettings = false })
+        return
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -46,7 +53,7 @@ fun AppRoot() {
         ) {
             stateHolder.SaveableStateProvider(selectedTab.name) {
                 when (selectedTab) {
-                    AppTab.Plan -> PlanRoute()
+                    AppTab.Plan -> PlanRoute(onOpenSettings = { showSettings = true })
                     AppTab.Shopping -> ShoppingRoute()
                     AppTab.Library -> LibraryRoute()
                 }

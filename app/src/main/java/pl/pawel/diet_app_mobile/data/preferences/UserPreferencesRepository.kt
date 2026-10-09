@@ -3,15 +3,20 @@ package pl.pawel.diet_app_mobile.data.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import pl.pawel.diet_app_mobile.domain.model.MealReminder
+import pl.pawel.diet_app_mobile.domain.model.MealReminderDefaults
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
@@ -41,8 +46,39 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    val mealReminders: Flow<List<MealReminder>> = context.dataStore.data.map { prefs ->
+        MealReminderDefaults.ALL.map { default ->
+            val key = REMINDER_KEYS.getValue(default.mealType)
+            MealReminder(
+                mealType = default.mealType,
+                enabled = prefs[booleanPreferencesKey("reminder_${key}_enabled")] ?: default.enabled,
+                time = prefs[intPreferencesKey("reminder_${key}_minute")]
+                    ?.let { minute -> LocalTime.of(minute / 60, minute % 60) }
+                    ?: default.time,
+            )
+        }
+    }
+
+    suspend fun setMealReminder(reminder: MealReminder) {
+        val key = REMINDER_KEYS.getValue(reminder.mealType)
+        context.dataStore.edit { prefs ->
+            prefs[booleanPreferencesKey("reminder_${key}_enabled")] = reminder.enabled
+            prefs[intPreferencesKey("reminder_${key}_minute")] =
+                reminder.time.hour * 60 + reminder.time.minute
+        }
+    }
+
     private companion object {
         val KEY_SHOPPING_RANGE_START = stringPreferencesKey("shopping_range_start")
         val KEY_SHOPPING_RANGE_END = stringPreferencesKey("shopping_range_end")
+
+        // Stabilne klucze ASCII — nazwy typów posiłków mogą się zmienić w UI.
+        val REMINDER_KEYS = mapOf(
+            "Śniadanie" to "breakfast",
+            "Drugie śniadanie" to "second_breakfast",
+            "Obiad" to "lunch",
+            "Podwieczorek" to "snack",
+            "Kolacja" to "dinner",
+        )
     }
 }

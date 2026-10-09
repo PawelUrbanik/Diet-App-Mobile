@@ -12,7 +12,13 @@ import androidx.compose.material.icons.filled.LunchDining
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SetMeal
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
+import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
+import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
+import pl.pawel.diet_app_mobile.ui.theme.MealColorPodwieczorek
+import pl.pawel.diet_app_mobile.ui.theme.MealColorSniadanie
 
 fun mealCategoryIcon(category: String): ImageVector = when (category) {
     "Śniadanie" -> Icons.Filled.WbSunny
@@ -21,6 +27,15 @@ fun mealCategoryIcon(category: String): ImageVector = when (category) {
     "Kolacja" -> Icons.Filled.DinnerDining
     "Podwieczorek" -> Icons.Filled.Cookie
     else -> Icons.Filled.Restaurant
+}
+
+fun mealCategoryColor(category: String): Color = when (category) {
+    "Śniadanie" -> MealColorSniadanie
+    "Drugie śniadanie" -> MealColorDrugieSniadanie
+    "Obiad" -> MealColorObiad
+    "Kolacja" -> MealColorKolacja
+    "Podwieczorek" -> MealColorPodwieczorek
+    else -> MealColorObiad
 }
 
 fun productCategoryIcon(category: String): ImageVector = when (category) {

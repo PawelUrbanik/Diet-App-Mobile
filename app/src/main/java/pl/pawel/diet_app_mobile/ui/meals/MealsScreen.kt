@@ -71,14 +71,10 @@ import pl.pawel.diet_app_mobile.domain.model.Product
 import pl.pawel.diet_app_mobile.ui.components.AppSearchBar
 import pl.pawel.diet_app_mobile.ui.components.NutritionMacroBars
 import pl.pawel.diet_app_mobile.ui.components.SwipeToDeleteContainer
+import pl.pawel.diet_app_mobile.ui.components.mealCategoryColor
 import pl.pawel.diet_app_mobile.ui.components.mealCategoryIcon
 import pl.pawel.diet_app_mobile.ui.components.productCategoryIcon
 import pl.pawel.diet_app_mobile.ui.products.ProductSortBy
-import pl.pawel.diet_app_mobile.ui.theme.MealColorDrugieSniadanie
-import pl.pawel.diet_app_mobile.ui.theme.MealColorKolacja
-import pl.pawel.diet_app_mobile.ui.theme.MealColorObiad
-import pl.pawel.diet_app_mobile.ui.theme.MealColorPodwieczorek
-import pl.pawel.diet_app_mobile.ui.theme.MealColorSniadanie
 
 private enum class MealsNavTarget(val depth: Int) {
     List(0), AddMeal(1), EditMeal(1), AddIngredient(2), EditIngredient(2)
@@ -839,15 +835,6 @@ private fun ErrorText(message: String) {
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.bodyMedium,
     )
-}
-
-private fun mealCategoryColor(category: String): Color = when (category) {
-    "Śniadanie" -> MealColorSniadanie
-    "Drugie śniadanie" -> MealColorDrugieSniadanie
-    "Obiad" -> MealColorObiad
-    "Kolacja" -> MealColorKolacja
-    "Podwieczorek" -> MealColorPodwieczorek
-    else -> MealColorObiad
 }
 
 private fun Double.format(): String =
